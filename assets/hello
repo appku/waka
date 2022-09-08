@@ -1,0 +1,11 @@
+#!/bin/sh
+
+DaySuffix() {
+  case `date +%d` in
+    1|21|31) echo "st";;
+    2|22)    echo "nd";;
+    3|23)    echo "rd";;
+    *)       echo "th";;
+  esac
+}
+echo -e "Hello AppKu™ friends, this is Waka v$APPKU_WAKA_VERSION. Today is $(date "+%A, the %-d`DaySuffix` of %B, %Y")!"
