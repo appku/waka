@@ -4,7 +4,7 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "start": "npx serve -p 8080 hello/"
+        "start": "npx serve -n -p 8080 hello/"
     },
     "author": "",
     "license": "SEE LICENSE IN LICENSE",
