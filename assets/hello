@@ -8,4 +8,11 @@ DaySuffix() {
     *)       echo "th";;
   esac
 }
-echo -e "Hello AppKu™ friends, this is Waka v$APPKU_WAKA_VERSION. Today is $(date "+%A, the %-d`DaySuffix` of %B, %Y")!"
+
+SCRIPT_PATH=$(dirname "$0")
+
+if [[ "$1" == "web" ]]; then
+    cd "$SCRIPT_PATH/server" && npm start
+else
+    echo -e "Hello AppKu™ friends, this is Waka v$APPKU_WAKA_VERSION. Today is $(date "+%A, the %-d`DaySuffix` of %B, %Y")!"
+fi

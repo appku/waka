@@ -1,0 +1,15 @@
+*.env
+*.log
+id_rsa
+*.pub
+*.key
+*.pem
+*.zip
+*.old
+*.old.*
+*.ignore
+*.ignore.*
+*.tar
+*.tar.gz
+*.zip
+node_modules
