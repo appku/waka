@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -ceu
+
+echo '[{ "ref": "1.0.0" }]'

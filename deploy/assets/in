@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -ceu
+
+#echo '{ "version": { "ref": "none", "message": "Hello World" }, "metadata": [{ "name": "message", "value": "Hello World" }] }'
+echo '{}'

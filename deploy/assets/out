@@ -1,0 +1,48 @@
+#!/bin/bash
+
+set -ceu
+echo '{ "version": { "ref": "none", "message": "Hello World" }, "metadata": [{ "name": "message", "value": "Hello World" }] }'
+# echo "Docker Version: $(docker --version)"
+# if [[ ! -z "${TRAEFIK_HOST-}" ]]; then
+# echo "Traefik Host: $TRAEFIK_HOST"
+# fi
+# if [[ ! -z "${TRAEFIK_HOST_RULE-}" ]]; then
+# echo "Traefik Host Rule: $TRAEFIK_HOST_RULE"
+# fi
+# echo "Traefik Cert. Resolver: $TRAEFIK_CERT_RESOLVER"
+# if [[ -z "${IMAGE_TAG-}" ]]; then
+# if [[ ! -z "${IMAGE_TAG_FILE-}" ]]; then
+#     export IMAGE_TAG=$(cat "$IMAGE_TAG_FILE")
+# else
+#     export IMAGE_TAG=latest
+# fi
+# fi
+# echo "Container Image: $IMAGE"
+# echo "Container Image Tag: ${IMAGE_TAG}"
+# echo "Container Image Tag File: ${IMAGE_TAG_FILE:-}"
+# echo "Container Host: ${HOST:-0.0.0.0}"
+# echo "Container Port: ${PORT:-8080}"
+# echo "Git Short Ref: $(cat ((source))/.git/short_ref)"
+# mkdir -p /etc/docker/certs.d/'((shuriken.registry.host))' ~/.ssh
+# cat << EOF > /etc/docker/certs.d/ca.crt
+# ((shuriken.registry.ca))
+# EOF
+# ln -s /etc/docker/certs.d/ca.crt /etc/docker/certs.d/((shuriken.registry.host))/ca.crt
+# cat << EOF > ~/.ssh/id_rsa
+# ((shuriken.key))
+# EOF
+# cat << EOF > ~/.ssh/id_rsa.pub
+# ((shuriken.pub))
+# EOF
+# echo "Adding Shuriken host to known hosts."
+# ssh-keyscan -H '((shuriken.host))' >> ~/.ssh/known_hosts
+# chmod 700 ~/.ssh && chmod 600 ~/.ssh/id_rsa && chmod 644 ~/.ssh/id_rsa.pub
+# echo "Performing docker login."
+# echo '((shuriken.registry.password))' | docker login -u '((shuriken.registry.username))' --password-stdin '((shuriken.registry.host))'
+# echo "Login complete."
+# echo "Using docker image: $IMAGE:$IMAGE_TAG"
+# echo "Creating docker context."
+# docker context create shuriken --docker 'host=ssh://((shuriken.username))@((shuriken.host))'
+# docker context use shuriken
+# echo "Deploying to service: ((service))"
+# docker-compose -f '((compose))' config | docker stack deploy --prune --with-registry-auth -c - '((service))'
