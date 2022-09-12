@@ -14,7 +14,7 @@ Waka has two distinct tags:
    to AppKu™ hosts.
 
 ## Getting Started
-Pull down the image:
+Pull down the images:
 ```
 docker pull appku/waka
 docker pull appku/waka:deploy
@@ -30,9 +30,46 @@ Say hello in the browser:
 docker run -p 8080:8080 -it appku/waka hello web
 ```
 
-Run a bash shell on the appku network:
+Run a bash shell on a local docker appku network:
 ```
 docker run -it --network appku appku/waka bash
+```
+
+### Deploying in AppKu™ Jido
+To use Waka to deploy a docker-compose project to an AppKu™ host, add the resource type to your pipeline:
+```yaml
+resource_types:
+  - name: appku-deploy
+    type: docker-image
+    source:
+      repository: appku/waka
+      tag: deploy
+```
+Then, add the resource with appropriate configuration values in the source definition.
+```yaml
+resources:
+  - name: appku-deploy
+    icon: flash
+    type: appku-deploy
+    source:
+      host: ((host))
+      debug: false
+      sa:
+        username: ((sa.username))
+        password: ((sa.password))
+        key: ((sa.key))
+```
+Next, add a `put` step into your job, and instruct the deployment where to find the docker-compose file.
+```yaml
+jobs:
+  - name: put-get
+    public: true
+    plan:
+      # ... 
+      # other steps to build and deploy docker images to registry.
+      #
+      - put: appku-deploy
+        params: { source: compose }
 ```
 
 ## Development

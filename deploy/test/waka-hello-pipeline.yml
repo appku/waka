@@ -18,46 +18,47 @@ resources:
         key: ((sa.key))
 
 jobs:
-- name: put-get
-  public: true
-  plan:
-    - task: compose
-      config:
-        platform: linux
-        image_resource:
-          type: registry-image
-          source: { repository: appku/waka }
-        outputs:
-          - name: compose
-            path: artifact
-        run:
-          path: /bin/bash
-          args:
-              - -ceu
-              - |
-                tee ./artifact/docker-compose.yml << 'EOF'
-                version: "3.8"
-                networks:
-                  appku:
-                    external: true
-                name: waka
-                services:
-                  hello:
-                    image: appku/waka
-                    command: hello web
-                    restart: on-failure
-                    expose: [8080]
-                    networks:
-                      appku: 
-                    labels:
-                    - traefik.enable=true
-                    - traefik.http.routers.hello.rule=HostRegexp(`hello.{domain:.*}`)
-                    - traefik.http.routers.hello.entrypoints=http
-                    - traefik.http.routers.hello.middlewares=https-redirect
-                    - traefik.http.routers.hello-https.rule=HostRegexp(`hello.{domain:.*}`)
-                    - traefik.http.routers.hello-https.entrypoints=https
-                    - traefik.http.routers.hello-https.tls=true
-                    - traefik.http.services.hello-https.loadbalancer.server.port=8080
-                EOF
-    - put: appku-deploy
-      params: { source: compose }
+  - name: put-get
+    public: true
+    plan:
+      - task: compose
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source: { repository: appku/waka }
+          outputs:
+            - name: compose
+              path: artifact
+          run:
+            path: /bin/bash
+            args:
+                - -ceu
+                - |
+                  tee ./artifact/docker-compose.yml << 'EOF'
+                  version: "3.8"
+                  networks:
+                    appku:
+                      external: true
+                  name: waka
+                  services:
+                    hello:
+                      image: appku/waka
+                      command: hello web
+                      restart: on-failure
+                      expose: [8080]
+                      networks:
+                        appku: 
+                      labels:
+                      - traefik.enable=true
+                      - traefik.http.routers.hello.rule=HostRegexp(`hello.{domain:.*}`)
+                      - traefik.http.routers.hello.entrypoints=http
+                      - traefik.http.routers.hello.middlewares=https-redirect
+                      - traefik.http.routers.hello-https.rule=HostRegexp(`hello.{domain:.*}`)
+                      - traefik.http.routers.hello-https.entrypoints=https
+                      - traefik.http.routers.hello-https.tls=true
+                      - traefik.http.services.hello-https.loadbalancer.server.port=8080
+                  EOF
+      - put: appku-deploy
+        params: { source: compose }
+  
