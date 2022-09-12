@@ -4,22 +4,43 @@ set -eu -o pipefail
 exec 3>&1 # stdout goes under specifically fd 3
 exec 1>&2 # all output to stderr, used for logging
 
+# switch to working location of job
 cd "$1"
 
 #dump stdin json to file
 jq -M . < /dev/stdin | tee /tmp/stdin.json &> /dev/null
 
+JSON_OUT='{ "version": {}, "metadata": [] }'
 DEBUG=$(jq ".source.debug" -r /tmp/stdin.json)
 APPKU_HOST=$(jq ".source.host // \"localhost\"" -r /tmp/stdin.json)
 APPKU_USERNAME=$(jq ".source.sa.username // \"appku\"" -r /tmp/stdin.json)
-APPKU_PASSWORD=$(jq ".source.sa.password" -r /tmp/stdin.json)
+APPKU_PASSWORD=$(jq ".source.sa.password // \"\"" -r /tmp/stdin.json)
 SOURCE=$(jq ".params.source" -r /tmp/stdin.json)
-COMPOSE_FILE=$(jq ".params.compose.file // \"docker-compose.yml\"" -r /tmp/stdin.json)
-COMPOSE_TIMEOUT=$(jq ".params.compose.timeout // 15" -r /tmp/stdin.json)
+MODE=$(jq ".params.mode // \"compose\"" -r /tmp/stdin.json)
+if [[ "$MODE" != "image" && "$MODE" != "compose" ]]; then
+    echo -e "\033[0;31mInvalid parameter 'mode'. Expected either 'compose' or 'image'.\033[0m"
+    exit 1;
+fi
+if [[ "$MODE" == "image" ]]; then
+    if [[ -z "$(jq ".params.image.path // \"\"" -r /tmp/stdin.json)" ]]; then
+        echo -e "\033[0;31mMissing parameter 'image.path'. Expected a docker image path value.\033[0m"
+        exit 1;
+    fi
+    if [[ -z "$(jq ".params.image.tags // \"\"" -r /tmp/stdin.json)" ]]; then
+        IMAGE_TAGS=("latest")
+    else
+        IMAGE_TAGS=($(</tmp/stdin.json jq -r ".params.image.tags | @tsv | gsub(\"\\t\";\" \")"))
+    fi
+    IMAGE_PATH=$(jq ".params.image.path" -r /tmp/stdin.json)
+    REGISTRY_HOST=$(jq ".params.image.host // \"registry.$APPKU_HOST\"" -r /tmp/stdin.json)
+else
+    COMPOSE_FILE=$(jq ".params.compose.file // \"docker-compose.yml\"" -r /tmp/stdin.json)
+    COMPOSE_TIMEOUT=$(jq ".params.compose.timeout // 15" -r /tmp/stdin.json)
+fi
 if [[ "$DEBUG" == 'true' ]]; then
     echo "Debug mode enabled."
     # printf "OUT Pipeline JSON:\n$(cat /tmp/stdin.json)\n"
-    echo "APPKU_WAKA_VERSION = $APPKU_WAKA_VERSION"
+    echo "## Job"
     echo "BUILD_TEAM_ID = $BUILD_TEAM_ID"
     echo "BUILD_TEAM_NAME = $BUILD_TEAM_NAME"
     echo "BUILD_PIPELINE_ID = $BUILD_PIPELINE_ID"
@@ -28,6 +49,8 @@ if [[ "$DEBUG" == 'true' ]]; then
     echo "BUILD_JOB_NAME = $BUILD_JOB_NAME"
     echo "BUILD_ID = $BUILD_ID"
     echo "BUILD_NAME = $BUILD_NAME"
+    echo
+    echo "## Source"
     echo "APPKU_HOST = $APPKU_HOST"
     echo "APPKU_USERNAME = $APPKU_USERNAME"
     if [[ -n "$APPKU_PASSWORD" ]]; then
@@ -35,12 +58,29 @@ if [[ "$DEBUG" == 'true' ]]; then
     else
         echo "APPKU_PASSWORD = {NOT SET}"
     fi
-    echo "Docker Version: $(docker --version)"
+    echo
+    echo "## Parameters"
+    echo "SOURCE = $SOURCE"
+    echo "MODE = $MODE"
+    if [[ "$MODE" == "image" ]]; then
+        echo "IMAGE_PATH = $IMAGE_PATH"
+        echo "IMAGE_TAGS = $IMAGE_TAGS"
+    else
+        echo "COMPOSE_FILE = $COMPOSE_FILE"
+        echo "COMPOSE_TIMEOUT = $COMPOSE_TIMEOUT"
+    fi
+    echo
+    echo "## Versions"
+    echo "AppKu™ Waka Version = $APPKU_WAKA_VERSION"
+    echo "Docker Version = $(docker --version)"
+    echo
+    echo "## System"
     echo "Running tree from current path '$(pwd)':"
     echo "**Note** Ignoring hidden, node_modules/, coverage/, log/, docs/, obj/ directories."
     tree -I 'node_modules|coverage|Log|log|Docs|docs|Obj|obj'
 fi
 
+# ssh prep
 echo "Adding service account ssh key."
 jq ".source.sa.key" -r /tmp/stdin.json > ~/.ssh/id_rsa
 echo "Adding AppKu™ host as known-host."
@@ -48,19 +88,52 @@ ssh-keyscan -H "$APPKU_HOST" &> /dev/null > ~/.ssh/known_hosts
 echo "Ensuring permissions."
 chmod 700 ~/.ssh && chmod 600 ~/.ssh/id_rsa
 
+# connect to remote docker system
 echo "Creating docker context."
 docker context create appku --docker "host=ssh://$APPKU_USERNAME@$APPKU_HOST" &>> appku.log
 echo "Switching to docker context."
 docker context use appku &>> appku.log
+JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"AppKu™ Host\", \"value\": \"$APPKU_HOST\" }]")
 
-echo "Running docker compose deployment from source '$(realpath $SOURCE)'."
-cd "$(realpath $SOURCE)"
-docker compose -f "$COMPOSE_FILE" up --remove-orphans --force-recreate -d -t $COMPOSE_TIMEOUT
+if [[ "$MODE" == "image" ]]; then
+    echo "Running docker image build and push from source '$(realpath $SOURCE)'."
+    cd "$(realpath $SOURCE)"
+    DOCKER_BUILD_ARGS=()
+    for i in "${IMAGE_TAGS[@]}"
+    do
+        DOCKER_BUILD_ARGS+=(-t "$IMAGE_PATH:$i")
+    done
+    docker build . "${DOCKER_BUILD_ARGS[@]}" > /tmp/docker_build_output
+    DOCKER_BUILD_DIGEST=$(cat /tmp/docker_build_output | rg '^Successfully built (.+)' -r '$1' | head -1)
+    JSON_OUT=$(echo "$JSON_OUT" | jq ".version.ref = \"$DOCKER_BUILD_DIGEST\"")
+    JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"AppKu™ Image Build & Deploy\", \"value\": \"$IMAGE_PATH\" }]")
+    echo "Performing docker login."
+    echo "$APPKU_PASSWORD" | docker login -u "$APPKU_USERNAME" --password-stdin "$REGISTRY_HOST"
+    echo "Performing docker push."
+    docker push -a "$IMAGE_PATH"
+    echo "Retrieving metadata"
+    for i in "${IMAGE_TAGS[@]}"
+    do
+        TAG_DIGEST="$(docker image inspect "$IMAGE_PATH:$i" -f '{{index .RepoDigests 0}}' | rg "^.+@(.+)" -r '$1')"
+        JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"Tag & Digest\", \"value\": \"$i, $TAG_DIGEST\" }]")
+    done
+    echo "no sens"
+else
+    # docker compose deploy
+    echo "Running docker compose deployment from source '$(realpath $SOURCE)'."
+    cd "$(realpath $SOURCE)"
+    # extra validation
+    COMPOSE_PROJECT=$(yq ".name // \"\"" "$COMPOSE_FILE")
+    if [[ -z "$COMPOSE_PROJECT" ]]; then
+        echo -e "\033[0;31mDocker compose file '$COMPOSE_FILE' is missing the 'name' value, which is required by AppKu™.\033[0m"
+        exit 1
+    fi
+    #deploy compose file
+    docker compose -f "$COMPOSE_FILE" up --remove-orphans --force-recreate -d -t $COMPOSE_TIMEOUT
+    JSON_OUT=$(echo "$JSON_OUT" | jq ".version.ref = \"$COMPOSE_PROJECT\"")
+    JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"AppKu™ Compose Deploy\", \"value\": \"$COMPOSE_PROJECT\" }]")
+fi
 
-JSON_OUTPUT='{
-    "version": { "ref": "something" },
-    "metadata": [
-        { "name": "message", "value": "Hello World" }
-    ]
-}'
-jq -n -c "$JSON_OUTPUT" >&3
+# job return
+
+echo "$JSON_OUT" >&3

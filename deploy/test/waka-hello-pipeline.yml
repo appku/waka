@@ -21,7 +21,7 @@ jobs:
   - name: put-get
     public: true
     plan:
-      - task: compose
+      - task: dockerfile-compose
         config:
           platform: linux
           image_resource:
@@ -35,6 +35,10 @@ jobs:
             args:
                 - -ceu
                 - |
+                  tee ./artifact/Dockerfile << 'EOF'
+                  FROM appku/waka:latest
+                  CMD ["hello", "web"]
+                  EOF
                   tee ./artifact/docker-compose.yml << 'EOF'
                   version: "3.8"
                   networks:
@@ -43,8 +47,7 @@ jobs:
                   name: waka
                   services:
                     hello:
-                      image: appku/waka
-                      command: hello web
+                      image: registry.localhost/hello
                       restart: on-failure
                       expose: [8080]
                       networks:
@@ -60,5 +63,16 @@ jobs:
                       - traefik.http.services.hello-https.loadbalancer.server.port=8080
                   EOF
       - put: appku-deploy
-        params: { source: compose }
-  
+        params: 
+          mode: image
+          source: compose
+          compose:
+            timeout: 12
+          image:
+            path: registry.localhost/hello
+            tags: [latest, 1.0.0]
+            host: registry.localhost
+      - put: appku-deploy
+        params: 
+          mode: compose
+          source: compose

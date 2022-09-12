@@ -1,7 +1,7 @@
 FROM docker:20.10.17-cli-alpine3.16
 
 #add packages
-RUN apk add --update --no-cache -q openssh nano bash curl jq tar gzip tree
+RUN apk add --update --no-cache -q openssh nano bash curl jq yq tar gzip tree ripgrep
 
 #ssh prep (ssh not installed)
 RUN mv /root /waka \
