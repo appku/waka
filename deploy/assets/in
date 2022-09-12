@@ -1,6 +1,41 @@
 #!/bin/bash
 
-set -ceu
+set -eu -o pipefail
+exec 3>&1 # stdout goes under specifically fd 3
+exec 1>&2 # all output to stderr, used for logging
 
-#echo '{ "version": { "ref": "none", "message": "Hello World" }, "metadata": [{ "name": "message", "value": "Hello World" }] }'
-echo '{}'
+#dump stdin json to file
+jq -M . < /dev/stdin | tee /tmp/stdin.json &> /dev/null
+
+DEBUG=$(jq ".source.debug" -r /tmp/stdin.json)
+APPKU_HOST=$(jq ".source.host // \"localhost\"" -r /tmp/stdin.json)
+# APPKU_REGISTRY_SERVICE=$(jq ".source.registry // \"registry\"" -r /tmp/stdin.json)
+APPKU_USERNAME=$(jq ".source.sa.username // \"appku\"" -r /tmp/stdin.json)
+APPKU_PASSWORD=$(jq ".source.sa.password" -r /tmp/stdin.json)
+if [[ "$DEBUG" == 'true' ]]; then
+    echo "Debug mode enabled."
+    # printf "IN Pipeline JSON:\n$(cat /tmp/stdin.json)\n"
+    echo "APPKU_WAKA_VERSION = $APPKU_WAKA_VERSION"
+    echo "BUILD_TEAM_ID = $BUILD_TEAM_ID"
+    echo "BUILD_TEAM_NAME = $BUILD_TEAM_NAME"
+    echo "BUILD_PIPELINE_ID = $BUILD_PIPELINE_ID"
+    echo "BUILD_PIPELINE_NAME = $BUILD_PIPELINE_NAME"
+    echo "BUILD_JOB_ID = $BUILD_JOB_ID"
+    echo "BUILD_JOB_NAME = $BUILD_JOB_NAME"
+    echo "BUILD_ID = $BUILD_ID"
+    echo "BUILD_NAME = $BUILD_NAME"
+    echo "APPKU_HOST = $APPKU_HOST"
+    echo "APPKU_USERNAME = $APPKU_USERNAME"
+    if [[ -n "$APPKU_PASSWORD" ]]; then
+        echo "APPKU_PASSWORD = *********"
+    else
+        echo "APPKU_PASSWORD = {NOT SET}"
+    fi
+    echo "Docker Version: $(docker --version)"
+    echo "Running tree from current path '$(pwd)':"
+    echo "**Note** Ignoring hidden, node_modules/, coverage/, log/, docs/, obj/ directories."
+    tree -I 'node_modules|coverage|Log|log|Docs|docs|Obj|obj'
+fi
+
+# Gets do nothing for deployments.
+echo '{}' >&3

@@ -1,48 +1,66 @@
 #!/bin/bash
 
-set -ceu
-echo '{ "version": { "ref": "none", "message": "Hello World" }, "metadata": [{ "name": "message", "value": "Hello World" }] }'
-# echo "Docker Version: $(docker --version)"
-# if [[ ! -z "${TRAEFIK_HOST-}" ]]; then
-# echo "Traefik Host: $TRAEFIK_HOST"
-# fi
-# if [[ ! -z "${TRAEFIK_HOST_RULE-}" ]]; then
-# echo "Traefik Host Rule: $TRAEFIK_HOST_RULE"
-# fi
-# echo "Traefik Cert. Resolver: $TRAEFIK_CERT_RESOLVER"
-# if [[ -z "${IMAGE_TAG-}" ]]; then
-# if [[ ! -z "${IMAGE_TAG_FILE-}" ]]; then
-#     export IMAGE_TAG=$(cat "$IMAGE_TAG_FILE")
-# else
-#     export IMAGE_TAG=latest
-# fi
-# fi
-# echo "Container Image: $IMAGE"
-# echo "Container Image Tag: ${IMAGE_TAG}"
-# echo "Container Image Tag File: ${IMAGE_TAG_FILE:-}"
-# echo "Container Host: ${HOST:-0.0.0.0}"
-# echo "Container Port: ${PORT:-8080}"
-# echo "Git Short Ref: $(cat ((source))/.git/short_ref)"
-# mkdir -p /etc/docker/certs.d/'((shuriken.registry.host))' ~/.ssh
-# cat << EOF > /etc/docker/certs.d/ca.crt
-# ((shuriken.registry.ca))
-# EOF
-# ln -s /etc/docker/certs.d/ca.crt /etc/docker/certs.d/((shuriken.registry.host))/ca.crt
-# cat << EOF > ~/.ssh/id_rsa
-# ((shuriken.key))
-# EOF
-# cat << EOF > ~/.ssh/id_rsa.pub
-# ((shuriken.pub))
-# EOF
-# echo "Adding Shuriken host to known hosts."
-# ssh-keyscan -H '((shuriken.host))' >> ~/.ssh/known_hosts
-# chmod 700 ~/.ssh && chmod 600 ~/.ssh/id_rsa && chmod 644 ~/.ssh/id_rsa.pub
-# echo "Performing docker login."
-# echo '((shuriken.registry.password))' | docker login -u '((shuriken.registry.username))' --password-stdin '((shuriken.registry.host))'
-# echo "Login complete."
-# echo "Using docker image: $IMAGE:$IMAGE_TAG"
-# echo "Creating docker context."
-# docker context create shuriken --docker 'host=ssh://((shuriken.username))@((shuriken.host))'
-# docker context use shuriken
-# echo "Deploying to service: ((service))"
-# docker-compose -f '((compose))' config | docker stack deploy --prune --with-registry-auth -c - '((service))'
+set -eu -o pipefail
+exec 3>&1 # stdout goes under specifically fd 3
+exec 1>&2 # all output to stderr, used for logging
+
+cd "$1"
+
+#dump stdin json to file
+jq -M . < /dev/stdin | tee /tmp/stdin.json &> /dev/null
+
+DEBUG=$(jq ".source.debug" -r /tmp/stdin.json)
+APPKU_HOST=$(jq ".source.host // \"localhost\"" -r /tmp/stdin.json)
+APPKU_USERNAME=$(jq ".source.sa.username // \"appku\"" -r /tmp/stdin.json)
+APPKU_PASSWORD=$(jq ".source.sa.password" -r /tmp/stdin.json)
+SOURCE=$(jq ".params.source" -r /tmp/stdin.json)
+COMPOSE_FILE=$(jq ".params.compose.file // \"docker-compose.yml\"" -r /tmp/stdin.json)
+COMPOSE_TIMEOUT=$(jq ".params.compose.timeout // 15" -r /tmp/stdin.json)
+if [[ "$DEBUG" == 'true' ]]; then
+    echo "Debug mode enabled."
+    # printf "OUT Pipeline JSON:\n$(cat /tmp/stdin.json)\n"
+    echo "APPKU_WAKA_VERSION = $APPKU_WAKA_VERSION"
+    echo "BUILD_TEAM_ID = $BUILD_TEAM_ID"
+    echo "BUILD_TEAM_NAME = $BUILD_TEAM_NAME"
+    echo "BUILD_PIPELINE_ID = $BUILD_PIPELINE_ID"
+    echo "BUILD_PIPELINE_NAME = $BUILD_PIPELINE_NAME"
+    echo "BUILD_JOB_ID = $BUILD_JOB_ID"
+    echo "BUILD_JOB_NAME = $BUILD_JOB_NAME"
+    echo "BUILD_ID = $BUILD_ID"
+    echo "BUILD_NAME = $BUILD_NAME"
+    echo "APPKU_HOST = $APPKU_HOST"
+    echo "APPKU_USERNAME = $APPKU_USERNAME"
+    if [[ -n "$APPKU_PASSWORD" ]]; then
+        echo "APPKU_PASSWORD = *********"
+    else
+        echo "APPKU_PASSWORD = {NOT SET}"
+    fi
+    echo "Docker Version: $(docker --version)"
+    echo "Running tree from current path '$(pwd)':"
+    echo "**Note** Ignoring hidden, node_modules/, coverage/, log/, docs/, obj/ directories."
+    tree -I 'node_modules|coverage|Log|log|Docs|docs|Obj|obj'
+fi
+
+echo "Adding service account ssh key."
+jq ".source.sa.key" -r /tmp/stdin.json > ~/.ssh/id_rsa
+echo "Adding AppKu™ host as known-host."
+ssh-keyscan -H "$APPKU_HOST" &> /dev/null > ~/.ssh/known_hosts
+echo "Ensuring permissions."
+chmod 700 ~/.ssh && chmod 600 ~/.ssh/id_rsa
+
+echo "Creating docker context."
+docker context create appku --docker "host=ssh://$APPKU_USERNAME@$APPKU_HOST" &>> appku.log
+echo "Switching to docker context."
+docker context use appku &>> appku.log
+
+echo "Running docker compose deployment from source '$(realpath $SOURCE)'."
+cd "$(realpath $SOURCE)"
+docker compose -f "$COMPOSE_FILE" up --remove-orphans --force-recreate -d -t $COMPOSE_TIMEOUT
+
+JSON_OUTPUT='{
+    "version": { "ref": "something" },
+    "metadata": [
+        { "name": "message", "value": "Hello World" }
+    ]
+}'
+jq -n -c "$JSON_OUTPUT" >&3

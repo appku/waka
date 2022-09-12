@@ -1,5 +1,7 @@
 #!/bin/bash
 
-set -ceu
+set -eu -o pipefail 
+exec 3>&1 # stdout goes under specifically fd 3
+exec 1>&2 # all output to stderr, used for logging
 
-echo '[{ "ref": "1.0.0" }]'
+echo "[{ \"ref\": \"$APPKU_WAKA_VERSION\" }]" >&3

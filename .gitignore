@@ -13,3 +13,4 @@ id_rsa
 *.tar.gz
 *.zip
 node_modules
+vars.yml
