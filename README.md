@@ -69,7 +69,10 @@ jobs:
       # other steps to build and deploy docker images to registry.
       #
       - put: appku-deploy
-        params: { source: compose }
+        params: 
+          source: compose
+          mode: compose #can be "image" or "compose"
+          env: #add your own custom environmental variables.
 ```
 
 ## Development

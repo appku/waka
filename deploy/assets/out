@@ -19,7 +19,11 @@ SOURCE=$(jq ".params.source" -r /tmp/stdin.json)
 MODE=$(jq ".params.mode // \"compose\"" -r /tmp/stdin.json)
 if [[ "$MODE" != "image" && "$MODE" != "compose" ]]; then
     echo -e "\033[0;31mInvalid parameter 'mode'. Expected either 'compose' or 'image'.\033[0m"
-    exit 1;
+    exit 1
+fi
+PARAM_ENV="$(jq ".params.env // \"\"" -r /tmp/stdin.json)"
+if [[ -n "$PARAM_ENV" ]]; then
+    PARAM_ENV=($(</tmp/stdin.json jq -r ".params.env | keys | @tsv | gsub(\"\\t\";\" \")"))
 fi
 if [[ "$MODE" == "image" ]]; then
     if [[ -z "$(jq ".params.image.path // \"\"" -r /tmp/stdin.json)" ]]; then
@@ -70,6 +74,18 @@ if [[ "$DEBUG" == 'true' ]]; then
         echo "COMPOSE_TIMEOUT = $COMPOSE_TIMEOUT"
     fi
     echo
+    echo "## Custom Env"
+    if [[ -n "$PARAM_ENV" ]]; then
+        for i in "${PARAM_ENV[@]}"
+        do
+            if [[ "$i" != "HOME" && "$i" != "PATH" && "$i" != "PWD" && "$i" != "SHLVL" && "$i" != "DOCKER_HOST" && "$i" != "HOSTNAME" ]]; then
+                echo "$i: $(jq ".params.env.$i // \"\"" -r /tmp/stdin.json)"
+            else
+                echo "Env '$i' ignored."
+            fi
+        done
+    fi
+    echo
     echo "## Versions"
     echo "AppKu™ Waka Version = $APPKU_WAKA_VERSION"
     echo "Docker Version = $(docker --version)"
@@ -78,6 +94,18 @@ if [[ "$DEBUG" == 'true' ]]; then
     echo "Running tree from current path '$(pwd)':"
     echo "**Note** Ignoring hidden, node_modules/, coverage/, log/, docs/, obj/ directories."
     tree -I 'node_modules|coverage|Log|log|Docs|docs|Obj|obj'
+fi
+
+# set custom environment
+if [[ -n "$PARAM_ENV" ]]; then
+    for i in "${PARAM_ENV[@]}"
+    do
+        if [[ "$i" != "HOME" && "$i" != "PATH" && "$i" != "PWD" && "$i" != "SHLVL" && "$i" != "DOCKER_HOST" && "$i" != "HOSTNAME" ]]; then
+            PARAM_ENV_VALUE="$(jq ".params.env.$i // \"\"" -r /tmp/stdin.json)"
+            export "$i"="$PARAM_ENV_VALUE"
+            echo "exported \"$i\"=\"$PARAM_ENV_VALUE\"" >> appku.log
+        fi
+    done
 fi
 
 # ssh prep
@@ -117,7 +145,6 @@ if [[ "$MODE" == "image" ]]; then
         TAG_DIGEST="$(docker image inspect "$IMAGE_PATH:$i" -f '{{index .RepoDigests 0}}' | rg "^.+@(.+)" -r '$1')"
         JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"Tag & Digest\", \"value\": \"$i, $TAG_DIGEST\" }]")
     done
-    echo "no sens"
 else
     # docker compose deploy
     echo "Running docker compose deployment from source '$(realpath $SOURCE)'."

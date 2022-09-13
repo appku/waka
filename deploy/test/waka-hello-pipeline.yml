@@ -76,3 +76,5 @@ jobs:
         params: 
           mode: compose
           source: compose
+          env:
+            HELLO: WORLD"$^%&*().893++94-4()[]sdfsdf
