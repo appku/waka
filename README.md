@@ -53,6 +53,7 @@ resources:
     type: appku-deploy
     source:
       host: ((host))
+      apps: ((host))
       debug: false
       sa:
         username: ((sa.username))
@@ -105,15 +106,15 @@ sa:
 ```
 
 **Step 2**
-
+*Note: you may need to include the `--insecure` argument in the `login` command if you are using a self-signed
+certificate (this is usually the case if developing locally).
 ```sh
 cd deploy/test/
 fly -t test login --team-name main --concourse-url https://jido.<your appku FQDN>
 fly validate-pipeline -c waka-hello-pipeline.yml
 fly -t test set-pipeline -p waka-hello -c waka-hello-pipeline.yml --check-creds --load-vars-from vars.yml
 ```
-*Note: you may need to include the `--insecure` argument in the login command if you are using a self-signed
-certificate.
+
 
 **Step 3**
 Verify functionality/tweak and redeploy (Step 2) as needed. When you are done, you can remove the pipeline by using
@@ -127,5 +128,5 @@ fly -t test destroy-pipeline -p waka-hello
 You can dive into a the running `:deploy` container using the intercept command in `fly`. For example, the following
 will intercept the `action-point/deploy` job and prompt you to select the task container.
 ```sh
-fly -t test intercept -j test-waka-deploy/appku-deploy
+fly -t test intercept -j waka-hello/put-get
 ```

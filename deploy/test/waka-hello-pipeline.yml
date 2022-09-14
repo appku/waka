@@ -10,12 +10,14 @@ resources:
     icon: flash
     type: appku-deploy
     source:
-      host: ((host))
       debug: true
-      sa:
-        username: ((sa.username))
-        password: ((sa.password))
-        key: ((sa.key))
+      host: ((host))
+      apps:
+        username: ((apps.username))
+        password: ((apps.password))
+        key: ((apps.key))
+        registry: registry.localhost
+        jido: jido.localhost
 
 jobs:
   - name: put-get
@@ -28,7 +30,7 @@ jobs:
             type: registry-image
             source: { repository: appku/waka }
           outputs:
-            - name: compose
+            - name: artifact
               path: artifact
           run:
             path: /bin/bash
@@ -39,6 +41,9 @@ jobs:
                   FROM appku/waka:latest
                   CMD ["hello", "web"]
                   EOF
+                  tee ./artifact/tagme << 'EOF'
+                  8jgf4349j4
+                  EOF
                   tee ./artifact/docker-compose.yml << 'EOF'
                   version: "3.8"
                   networks:
@@ -47,11 +52,14 @@ jobs:
                   name: waka
                   services:
                     hello:
-                      image: registry.localhost/hello
+                      build: .
+                      image: waka.localhost/hello:${TAG:-latest}
                       restart: on-failure
                       expose: [8080]
                       networks:
                         appku: 
+                      environment:
+                        - HELLO=${HELLO:?}
                       labels:
                       - traefik.enable=true
                       - traefik.http.routers.hello.rule=HostRegexp(`hello.{domain:.*}`)
@@ -64,17 +72,8 @@ jobs:
                   EOF
       - put: appku-deploy
         params: 
-          mode: image
-          source: compose
+          source: artifact
           compose:
-            timeout: 12
-          image:
-            path: registry.localhost/hello
-            tags: [latest, 1.0.0]
-            host: registry.localhost
-      - put: appku-deploy
-        params: 
-          mode: compose
-          source: compose
-          env:
-            HELLO: WORLD"$^%&*().893++94-4()[]sdfsdf
+            tag_file: tagme
+            env:
+              HELLO: WORLD"$^%&*().893++94-4()[]sdfsdf
