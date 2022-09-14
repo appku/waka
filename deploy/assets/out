@@ -155,13 +155,13 @@ if [[ "$PARAMS_HOUSECLEANING" == "true" ]]; then
     echo -e "\nPerforming housecleaning..."
     set +o pipefail
     echo "➔ Containers."
-    yes | docker container prune &> /dev/null
+    yes | docker container prune --filter until=168h &> /dev/null
     echo "➔ Images."
-    yes | docker image prune &> /dev/null
+    yes | docker image prune --filter until=168h &> /dev/null
     echo "➔ Volumes."
-    yes | docker volume prune &> /dev/null
+    yes | docker volume prune --filter until=168h &> /dev/null
     echo "➔ Networks."
-    yes | docker network prune &> /dev/null
+    yes | docker network prune --filter until=168h &> /dev/null
     echo "Housecleaning complete."
 fi
 
