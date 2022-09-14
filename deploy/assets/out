@@ -18,6 +18,7 @@ SOURCE_APPS_JIDO_HOST=$(jq ".source.apps.jido // \"jido.$SOURCE_HOST\"" -r /tmp/
 SOURCE_APPS_USERNAME=$(jq ".source.apps.username // \"appku\"" -r /tmp/stdin.json)
 SOURCE_APPS_PASSWORD=$(jq ".source.apps.password // \"\"" -r /tmp/stdin.json)
 PARAMS_SOURCE=$(jq ".params.source" -r /tmp/stdin.json)
+PARAMS_HOUSECLEANING=$(jq ".params.housecleaning // true" -r /tmp/stdin.json)
 PARAMS_COMPOSE_FILE=$(jq ".params.compose.file // \"docker-compose.yml\"" -r /tmp/stdin.json)
 PARAMS_COMPOSE_TAG=$(jq ".params.compose.tag // \"\"" -r /tmp/stdin.json)
 PARAMS_COMPOSE_TAG_FILE=$(jq ".params.compose.tag_file // \"\"" -r /tmp/stdin.json)
@@ -121,7 +122,7 @@ if [[ -z "$COMPOSE_PROJECT" ]]; then
     echo -e "\033[0;31mDocker compose file '$PARAMS_COMPOSE_FILE' is missing the 'name' value, which is required by AppKu™.\033[0m"
     exit 1
 fi
-#deploy compose file
+# deploy compose file
 touch /tmp/compose.env
 if [[ -n "$PARAMS_COMPOSE_TAG" ]]; then
     echo "TAG=$PARAMS_COMPOSE_TAG" >> /tmp/compose.env
@@ -131,7 +132,7 @@ if [[ -n "$PARAMS_COMPOSE_ENV" ]]; then
     for i in "${PARAMS_COMPOSE_ENV_KEYS[@]}"
     do
         if [[ -n "$i" && "$i" != "HOME" && "$i" != "PATH" && "$i" != "PWD" && "$i" != "SHLVL" && "$i" != "DOCKER_HOST" ]]; then
-            #capture the env value and escape "$" with "$$" for docker
+            # capture the env value and escape "$" with "$$" for docker
             PARAMS_COMPOSE_ENV_VALUE="$(jq ".params.compose.env.$i // \"\"" -r /tmp/stdin.json | sed -r 's/\$/\$\$/g')"
             echo "$i: $PARAMS_COMPOSE_ENV_VALUE" >> /tmp/compose.env
             echo "Added env to /tmp/compose.env: \"$i\"=\"$PARAMS_COMPOSE_ENV_VALUE\"" >> appku.log
@@ -149,6 +150,21 @@ docker compose --env-file /tmp/compose.env -f "$PARAMS_COMPOSE_FILE" up "${COMPO
 JSON_OUT=$(echo "$JSON_OUT" | jq ".version.ref = \"$COMPOSE_PROJECT\"")
 JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"AppKu™ Compose Deploy\", \"value\": \"$COMPOSE_PROJECT\" }]")
 
+# housecleaning
+if [[ "$PARAMS_HOUSECLEANING" == "true" ]]; then
+    echo -e "\nPerforming housecleaning..."
+    set +o pipefail
+    echo "➔ Containers."
+    yes | docker container prune &> /dev/null
+    echo "➔ Images."
+    yes | docker image prune &> /dev/null
+    echo "➔ Volumes."
+    yes | docker volume prune &> /dev/null
+    echo "➔ Networks."
+    yes | docker network prune &> /dev/null
+    echo "Housecleaning complete."
+fi
+
 # job return
-echo "Done."
+echo -e "\nDone."
 echo "$JSON_OUT" >&3
