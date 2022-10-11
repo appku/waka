@@ -1,0 +1,55 @@
+{
+    "cards": [
+        {
+            "header": {
+                "title": "AppKu™",
+                "subtitle": "Automation Completed",
+                "imageUrl": "https://www.gstatic.com/images/icons/material/system/2x/notifications_active_googblue_48dp.png",
+                "imageStyle": "IMAGE"
+            },
+            "sections": [
+                {
+                    "widgets": [
+                        {
+                            "keyValue": {
+                                "topLabel": "Pipeline",
+                                "content": "burger-n-dog",
+                                "contentMultiline": "false",
+                                "bottomLabel": "super-project",
+                                "onClick": {
+                                    "openLink": {
+                                        "url": "https://jido.localhost/"
+                                    }
+                                },
+                                "icon": "FLIGHT_ARRIVAL"
+                            }
+                        },
+                        {
+                            "textParagraph": {
+                                "text": "Job \"deploy\" <i>completed</i> as build 5 by <i><a href=\"https://chai.localhost/\">John Butterfish</a></i>."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "widgets": [
+                        {
+                            "buttons": [
+                                {
+                                    "textButton": {
+                                        "text": "OPEN BUILD 5",
+                                        "onClick": {
+                                            "openLink": {
+                                                "url": "https://jido.localhost/"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

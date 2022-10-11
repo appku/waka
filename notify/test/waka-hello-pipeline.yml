@@ -1,0 +1,27 @@
+resource_types:
+  - name: appku-notify
+    type: docker-image
+    source:
+      repository: appku/waka
+      tag: notify
+
+resources:
+  - name: google-chat
+    icon: flash
+    type: appku-notify
+    source:
+      debug: true
+      format: google-chat
+      uri: https://chat.googleapis.com/v1/spaces/************
+
+job-notify: &job-notify
+  on_success: { put: google-chat, params: { icon: success, message: Automation Succeeded } }
+  on_failure: { put: google-chat, params: { icon: fail, mode: Automation Failed  } }
+  on_error: { put: google-chat, params: { icon: error, mode: Automation Error } }
+  on_abort: { put: google-chat, params: { icon: aborted, mode: Automation Aborted } }
+
+jobs:
+  - name: send-me-notifications
+    public: true
+    plan:
+      <<: *job-notify
