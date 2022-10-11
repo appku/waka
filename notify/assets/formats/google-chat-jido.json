@@ -2,9 +2,9 @@
     "cards": [
         {
             "header": {
-                "title": "AppKu™",
-                "subtitle": "Chai Event Notification",
-                "imageUrl": "https://www.gstatic.com/images/icons/material/system/2x/notifications_active_googblue_48dp.png",
+                "title": "${PARAMS_TITLE}",
+                "subtitle": "${PARAMS_SUBTITLE}",
+                "imageUrl": "${PARAMS_ICON}",
                 "imageStyle": "IMAGE"
             },
             "sections": [
@@ -12,21 +12,20 @@
                     "widgets": [
                         {
                             "keyValue": {
-                                "topLabel": "Repo",
-                                "content": "burger-n-dog",
+                                "topLabel": "Pipeline",
+                                "content": "${BUILD_TEAM_NAME}",
                                 "contentMultiline": "false",
-                                "bottomLabel": "super-project",
+                                "bottomLabel": "${BUILD_PIPELINE_NAME}",
                                 "onClick": {
                                     "openLink": {
-                                        "url": "https://chai.localhost/"
+                                        "url": "${JIDO_HOST}/teams/${BUILD_TEAM_NAME}/pipelines/${BUILD_PIPELINE_NAME}"
                                     }
-                                },
-                                "icon": "DESCRIPTION"
+                                }
                             }
                         },
                         {
                             "textParagraph": {
-                                "text": "Commit <b>#cf893e9</b> by <i><a href=\"https://chai.localhost/\">John Test</a></i>."
+                                "text": "${PARAMS_MESSAGE}"
                             }
                         }
                     ]
@@ -37,10 +36,10 @@
                             "buttons": [
                                 {
                                     "textButton": {
-                                        "text": "OPEN COMMIT #cf893e9",
+                                        "text": "OPEN BUILD ${BUILD_NAME}",
                                         "onClick": {
                                             "openLink": {
-                                                "url": "https://chai.localhost/"
+                                                "url": "${JIDO_HOST}/teams/${BUILD_TEAM_NAME}/pipelines/${BUILD_PIPELINE_NAME}/jobs/${BUILD_JOB_NAME}/builds/${BUILD_NAME}"
                                             }
                                         }
                                     }

@@ -16,8 +16,8 @@ resources:
         username: ((apps.username))
         password: ((apps.password))
         key: ((apps.key))
-        registry: registry.localhost
-        jido: jido.localhost
+        registry: ((apps.registry))
+        jido: ((apps.jido))
 
 jobs:
   - name: put-get

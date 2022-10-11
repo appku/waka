@@ -1,0 +1,23 @@
+{
+    "cards": [
+        {
+            "header": {
+                "title": "${PARAMS_TITLE}",
+                "subtitle": "${PARAMS_SUBTITLE}",
+                "imageUrl": "${PARAMS_ICON}",
+                "imageStyle": "IMAGE"
+            },
+            "sections": [
+                {
+                    "widgets": [
+                        {
+                            "textParagraph": {
+                                "text": "${PARAMS_MESSAGE}"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

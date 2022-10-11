@@ -8,8 +8,12 @@ exec 1>&2 # all output to stderr, used for logging
 cd "$1"
 
 #dump stdin json to file
-jq -M . < /dev/stdin | tee /tmp/stdin.json &> /dev/null
+set +e
+IFS= read -t 0.01 -r -d '' STDIN_DATA
+set -e
+[[ -n $STDIN_DATA ]] && printf "%s" "$STDIN_DATA" > /tmp/stdin.json
 
+#gather variables
 JSON_OUT='{ "version": {}, "metadata": [] }'
 SOURCE_DEBUG=$(jq ".source.debug" -r /tmp/stdin.json)
 SOURCE_HOST=$(jq ".source.host // \"localhost\"" -r /tmp/stdin.json)

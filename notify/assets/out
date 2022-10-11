@@ -8,39 +8,39 @@ exec 1>&2 # all output to stderr, used for logging
 cd "$1"
 
 #dump stdin json to file
-jq -M . < /dev/stdin | tee /tmp/stdin.json &> /dev/null
+set +e
+IFS= read -t 0.1 -r -d '' STDIN_DATA
+set -e
+[[ -n "$STDIN_DATA" ]] && printf "%s" "$STDIN_DATA" > /tmp/stdin.json
 
+#gather variables
 JSON_OUT='{ "version": {}, "metadata": [] }'
 SOURCE_DEBUG=$(jq ".source.debug" -r /tmp/stdin.json)
+SOURCE_PROVIDER=$(jq ".source.provider // \"google-chat\"" -r /tmp/stdin.json)
+SOURCE_URI=$(jq ".source.uri // \"\"" -r /tmp/stdin.json)
 SOURCE_HOST=$(jq ".source.host // \"localhost\"" -r /tmp/stdin.json)
-SOURCE_APPS_REGISTRY_HOST=$(jq ".source.apps.registry // \"registry.$SOURCE_HOST\"" -r /tmp/stdin.json)
 SOURCE_APPS_JIDO_HOST=$(jq ".source.apps.jido // \"jido.$SOURCE_HOST\"" -r /tmp/stdin.json)
-SOURCE_APPS_USERNAME=$(jq ".source.apps.username // \"appku\"" -r /tmp/stdin.json)
-SOURCE_APPS_PASSWORD=$(jq ".source.apps.password // \"\"" -r /tmp/stdin.json)
-PARAMS_SOURCE=$(jq ".params.source" -r /tmp/stdin.json)
-PARAMS_HOUSECLEANING=$(jq ".params.housecleaning // true" -r /tmp/stdin.json)
-PARAMS_COMPOSE_FILE=$(jq ".params.compose.file // \"docker-compose.yml\"" -r /tmp/stdin.json)
-PARAMS_COMPOSE_TAG=$(jq ".params.compose.tag // \"\"" -r /tmp/stdin.json)
-PARAMS_COMPOSE_TAG_FILE=$(jq ".params.compose.tag_file // \"\"" -r /tmp/stdin.json)
-PARAMS_COMPOSE_TIMEOUT=$(jq ".params.compose.timeout // 15" -r /tmp/stdin.json)
-PARAMS_COMPOSE_NUKE_ORPHANS=$(jq ".params.compose.nuke_orphans // true" -r /tmp/stdin.json)
-PARAMS_COMPOSE_RECREATE=$(jq ".params.compose.recreate // true" -r /tmp/stdin.json)
-PARAMS_COMPOSE_ENV="$(jq ".params.compose.env // \"\"" -r /tmp/stdin.json)"
-if [[ -z "$PARAMS_SOURCE" ]]; then
-    echo -e "\033[0;31mThe 'source' step parameter must be set.\033[0m"
+PARAMS_TITLE=$(jq ".params.title // \"AppKu™ Notification\"" -r /tmp/stdin.json)
+PARAMS_SUBTITLE=$(jq ".params.subtitle // \"\"" -r /tmp/stdin.json)
+PARAMS_ICON=$(jq ".params.icon // \"\"" -r /tmp/stdin.json)
+PARAMS_MESSAGE=$(jq ".params.message // \"\"" -r /tmp/stdin.json)
+PARAMS_FORMAT=$(jq ".params.format // \"jido\"" -r /tmp/stdin.json)
+if [[ -z "$SOURCE_URI" ]]; then
+    echo -e "\033[0;31mThe 'uri' resource property must be set.\033[0m"
     exit 1
 fi
-if [[ -n "$PARAMS_COMPOSE_TAG" && -n "$PARAMS_COMPOSE_TAG_FILE" ]]; then
-    echo -e "\033[0;31mOnly the 'tag' or 'tag_file' step parameter must be set, using both is not allowed.\033[0m"
+if [[ "$SOURCE_PROVIDER" != "google-chat" && "$SOURCE_PROVIDER" != "none" ]]; then
+    echo -e "\033[0;31mThe 'provider' resource property must be either 'google-chat' (default) or 'none'.\033[0m"
     exit 1
 fi
-if [[ -n "$PARAMS_COMPOSE_ENV" ]]; then
-    PARAMS_COMPOSE_ENV_KEYS=($(</tmp/stdin.json jq -r ".params.compose.env | keys | @tsv | gsub(\"\\t\";\" \")"))
+if [[ "$PARAMS_FORMAT" != "jido" && "$PARAMS_FORMAT" != "custom" ]]; then
+    echo -e "\033[0;31mThe 'provider' resource property must be either 'jido' (default) or 'custom'.\033[0m"
+    exit 1
 fi
 if [[ "$SOURCE_DEBUG" == 'true' ]]; then
     echo "Debug mode enabled."
     # printf "OUT Pipeline JSON:\n$(cat /tmp/stdin.json)\n"
-    echo "## Job"
+    echo "## Pipeline Build"
     echo "BUILD_TEAM_ID = $BUILD_TEAM_ID"
     echo "BUILD_TEAM_NAME = $BUILD_TEAM_NAME"
     echo "BUILD_PIPELINE_ID = $BUILD_PIPELINE_ID"
@@ -52,35 +52,16 @@ if [[ "$SOURCE_DEBUG" == 'true' ]]; then
     echo
     echo "## Source"
     echo "SOURCE_DEBUG = $SOURCE_DEBUG"
+    echo "SOURCE_PROVIDER = $SOURCE_PROVIDER"
+    echo "SOURCE_URI = $SOURCE_URI"
     echo "SOURCE_HOST = $SOURCE_HOST"
-    echo "SOURCE_APPS_REGISTRY_HOST = $SOURCE_APPS_REGISTRY_HOST"
     echo "SOURCE_APPS_JIDO_HOST = $SOURCE_APPS_JIDO_HOST"
-    echo "SOURCE_APPS_USERNAME = $SOURCE_APPS_USERNAME"
-    if [[ -n "$SOURCE_APPS_PASSWORD" ]]; then
-        echo "SOURCE_APPS_PASSWORD = *********"
-    else
-        echo "SOURCE_APPS_PASSWORD = {NOT SET}"
-    fi
     echo
     echo "## Parameters"
-    echo "PARAMS_SOURCE = $PARAMS_SOURCE"
-    echo "PARAMS_COMPOSE_FILE = $PARAMS_COMPOSE_FILE"
-    echo "PARAMS_COMPOSE_TAG = $PARAMS_COMPOSE_TAG"
-    echo "PARAMS_COMPOSE_TAG_FILE = $PARAMS_COMPOSE_TAG_FILE"
-    echo "PARAMS_COMPOSE_TIMEOUT = $PARAMS_COMPOSE_TIMEOUT"
-    echo "PARAMS_COMPOSE_NUKE_ORPHANS = $PARAMS_COMPOSE_NUKE_ORPHANS"
-    echo "PARAMS_COMPOSE_RECREATE = $PARAMS_COMPOSE_RECREATE"
-    if [[ -n "$PARAMS_COMPOSE_ENV" ]]; then
-        echo "PARAMS_COMPOSE_ENV = {SET}"
-        for i in "${PARAMS_COMPOSE_ENV_KEYS[@]}"
-        do
-            if [[ -n "$i" && "$i" != "HOME" && "$i" != "PATH" && "$i" != "PWD" && "$i" != "SHLVL" && "$i" != "DOCKER_HOST" ]]; then
-                echo " ➔ $i"
-            fi
-        done
-    else
-        echo "PARAMS_COMPOSE_ENV = {NOT SET}"
-    fi
+    echo "PARAMS_ICON = $PARAMS_ICON"
+    echo "PARAMS_TITLE = $PARAMS_TITLE"
+    echo "PARAMS_MESSAGE = $PARAMS_MESSAGE"
+    echo "PARAMS_FORMAT = $PARAMS_FORMAT"
     echo
     echo "## Versions"
     echo "AppKu™ Waka Version = $APPKU_WAKA_VERSION"
@@ -92,78 +73,38 @@ if [[ "$SOURCE_DEBUG" == 'true' ]]; then
     tree -I 'node_modules|coverage|Log|log|Docs|docs|Obj|obj'
 fi
 
-# ssh prep
-echo "Adding service account ssh key."
-jq ".source.apps.key" -r /tmp/stdin.json > ~/.ssh/id_rsa
-echo "Adding AppKu™ host as known-host."
-ssh-keyscan -H "$SOURCE_HOST" &> /dev/null > ~/.ssh/known_hosts
-echo "Ensuring permissions."
-chmod 700 ~/.ssh && chmod 600 ~/.ssh/id_rsa
-
-# connect to remote docker system
-echo "Creating docker context."
-docker context create appku --docker "host=ssh://$SOURCE_APPS_USERNAME@$SOURCE_HOST" &>> appku.log
-echo "Switching to docker context."
-docker context use appku &>> appku.log
-JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"AppKu™ Host\", \"value\": \"$SOURCE_HOST\" }]")
-
-# docker compose deploy
-echo "Running docker compose deployment from source '$(realpath $PARAMS_SOURCE)'."
-cd "$(realpath $PARAMS_SOURCE)"
-if [[ -n "$PARAMS_COMPOSE_TAG_FILE" ]]; then
-    TEMP_PARAMS_COMPOSE_TAG=$(cat "$PARAMS_COMPOSE_TAG_FILE")
-    if [[ -n "$TEMP_PARAMS_COMPOSE_TAG" ]]; then
-        PARAMS_COMPOSE_TAG="$TEMP_PARAMS_COMPOSE_TAG"
+# prepare message
+if [[ "$PARAMS_FORMAT" == "jido" ]]; then
+    if [[ -n "$PARAMS_TITLE" ]]; then
+        PARAMS_TITLE="AppKu™ Jido™"
+    fi
+    if [[ -z "$PARAMS_MESSAGE" ]]; then
+        PARAMS_MESSAGE="Job \"$BUILD_JOB_NAME\" on Build $BUILD_NAME"
+        if [[ -n "${BUILD_CREATED_BY-}" ]]; then
+            PARAMS_MESSAGE="$PARAMS_MESSAGE by ${BUILD_CREATED_BY-}"
+        fi
     fi
 fi
-# extra validation
-COMPOSE_PROJECT=$(yq ".name // \"\"" "$PARAMS_COMPOSE_FILE")
-if [[ -z "$COMPOSE_PROJECT" ]]; then
-    echo -e "\033[0;31mDocker compose file '$PARAMS_COMPOSE_FILE' is missing the 'name' value, which is required by AppKu™.\033[0m"
-    exit 1
-fi
-# deploy compose file
-touch /tmp/compose.env
-if [[ -n "$PARAMS_COMPOSE_TAG" ]]; then
-    echo "TAG=$PARAMS_COMPOSE_TAG" >> /tmp/compose.env
-    echo "IMAGE_TAG=$PARAMS_COMPOSE_TAG" >> /tmp/compose.env
-fi
-if [[ -n "$PARAMS_COMPOSE_ENV" ]]; then
-    for i in "${PARAMS_COMPOSE_ENV_KEYS[@]}"
-    do
-        if [[ -n "$i" && "$i" != "HOME" && "$i" != "PATH" && "$i" != "PWD" && "$i" != "SHLVL" && "$i" != "DOCKER_HOST" ]]; then
-            # capture the env value and escape "$" with "$$" for docker
-            PARAMS_COMPOSE_ENV_VALUE="$(jq ".params.compose.env.$i // \"\"" -r /tmp/stdin.json | sed -r 's/\$/\$\$/g')"
-            echo "$i: $PARAMS_COMPOSE_ENV_VALUE" >> /tmp/compose.env
-            echo "Added env to /tmp/compose.env: \"$i\"=\"$PARAMS_COMPOSE_ENV_VALUE\"" >> appku.log
-        fi
-    done
-fi
-COMPOSE_ARGS=()
-if [[ "$PARAMS_COMPOSE_NUKE_ORPHANS" == "true" ]]; then
-    COMPOSE_ARGS+=(--remove-orphans)
-fi
-if [[ "$PARAMS_COMPOSE_RECREATE" == "true" ]]; then
-    COMPOSE_ARGS+=(--force-recreate)
-fi
-docker compose --env-file /tmp/compose.env -f "$PARAMS_COMPOSE_FILE" up "${COMPOSE_ARGS[@]}" -d -t $PARAMS_COMPOSE_TIMEOUT
-JSON_OUT=$(echo "$JSON_OUT" | jq ".version.ref = \"$COMPOSE_PROJECT\"")
-JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"AppKu™ Compose Deploy\", \"value\": \"$COMPOSE_PROJECT\" }]")
 
-# housecleaning
-if [[ "$PARAMS_HOUSECLEANING" == "true" ]]; then
-    echo -e "\nPerforming housecleaning..."
-    set +o pipefail
-    echo "➔ Containers."
-    yes | docker container prune --filter until=72h &> /dev/null
-    echo "➔ Images."
-    yes | docker image prune --filter until=72h &> /dev/null
-    echo "➔ Volumes."
-    yes | docker volume prune &> /dev/null
-    echo "➔ Networks."
-    yes | docker network prune --filter until=72h &> /dev/null
-    echo "Housecleaning complete."
-fi
+PARAMS_TITLE=$(echo "$PARAMS_TITLE" | sed 's/"/\\"/g') \
+PARAMS_SUBTITLE=$(echo "$PARAMS_SUBTITLE" | sed 's/"/\\"/g') \
+PARAMS_ICON="$PARAMS_ICON" \
+PARAMS_MESSAGE=$(echo "$PARAMS_MESSAGE" | sed 's/"/\\"/g') \
+PARAMS_FORMAT="$PARAMS_FORMAT" \
+BUILD_TEAM_ID="$BUILD_TEAM_ID" \
+BUILD_TEAM_NAME="$BUILD_TEAM_NAME" \
+BUILD_PIPELINE_ID="$BUILD_PIPELINE_ID" \
+BUILD_PIPELINE_NAME="$BUILD_PIPELINE_NAME" \
+BUILD_JOB_ID="$BUILD_JOB_ID" \
+BUILD_JOB_NAME="$BUILD_JOB_NAME" \
+BUILD_ID="$BUILD_ID" \
+BUILD_NAME="$BUILD_NAME" \
+JIDO_HOST="https://$SOURCE_APPS_JIDO_HOST" \
+    envsubst < "/waka/formats/$SOURCE_PROVIDER-$PARAMS_FORMAT.json" > /waka/send.json
+
+# sending message
+curl -X POST -H "Content-Type: application/json" -d @/waka/send.json "$SOURCE_URI"
+JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"Provider\", \"value\": \"$SOURCE_PROVIDER\" }]")
 
 # job return
 echo -e "\nDone."

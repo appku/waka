@@ -17,7 +17,7 @@ RUN mv /root /waka \
 #update & install packages
 RUN microdnf update -y \
     && microdnf install -y --nodocs \
-        nano findutils iputils bind-utils jq tar gzip curl openssl openssh-clients nodejs \
+        nano findutils iputils bind-utils jq tar gzip curl openssl openssh-clients tree gettext nodejs  \
     && microdnf clean all \
     #install rg
     && curl https://github.com/BurntSushi/ripgrep/releases/download/13.0.0/ripgrep-13.0.0-x86_64-unknown-linux-musl.tar.gz -L -o /tmp/rg.tar.gz \
@@ -30,6 +30,9 @@ RUN microdnf update -y \
     && cp -R /tmp/yq_linux_amd64 /usr/bin/yq \
     #cleanup
     && rm -fr /tmp/*
+
+#update npm to latest
+RUN npm install -g npm
 
 #include scripts
 COPY assets /waka/
