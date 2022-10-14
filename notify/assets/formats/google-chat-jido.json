@@ -12,10 +12,9 @@
                     "widgets": [
                         {
                             "keyValue": {
-                                "topLabel": "Pipeline",
-                                "content": "${BUILD_TEAM_NAME}",
+                                "topLabel": "Team / Pipeline",
+                                "content": "${BUILD_TEAM_NAME} / ${BUILD_PIPELINE_NAME}",
                                 "contentMultiline": "false",
-                                "bottomLabel": "${BUILD_PIPELINE_NAME}",
                                 "onClick": {
                                     "openLink": {
                                         "url": "${JIDO_HOST}/teams/${BUILD_TEAM_NAME}/pipelines/${BUILD_PIPELINE_NAME}"
@@ -36,7 +35,7 @@
                             "buttons": [
                                 {
                                     "textButton": {
-                                        "text": "OPEN BUILD ${BUILD_NAME}",
+                                        "text": "VIEW JOB \"${BUILD_JOB_NAME_UPPER}\" BUILD ${BUILD_NAME}",
                                         "onClick": {
                                             "openLink": {
                                                 "url": "${JIDO_HOST}/teams/${BUILD_TEAM_NAME}/pipelines/${BUILD_PIPELINE_NAME}/jobs/${BUILD_JOB_NAME}/builds/${BUILD_NAME}"

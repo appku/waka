@@ -12,21 +12,13 @@ ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 #update npm to latest
 RUN npm install -g npm
 
-#install commonly used packages to speed up builds.
+#install commonly used dev/build packages to speed up builds.
 RUN npm i -g \
-    @appku/stashku \
-    @appku/stashku-log \
-    @appku/stashku-sql \
-    @appku/fairu \
     @types/jest \
     @vue/eslint-config-standard \
-    axios \
     babel-eslint \
     babel-jest \
     babel-loader \
-    body-parser \
-    chalk \
-    cookie-parser \
     nodemon \
     husky \
     eslint \
@@ -35,22 +27,17 @@ RUN npm i -g \
     eslint-plugin-node \
     eslint-plugin-promise \
     eslint-plugin-vue \
-    express \
-    express-session \
     jest \
     jest-circus \
     jest-resolve \
     jsdoc \
     jsdoc-plugin-intersection \
-    moment \
-    mssql \
     react \
     react-dev-utils \
     react-dom \
     react-refresh \
     react-router-dom \
     sass \
-    serve \
     vue \
     vue-cli-plugin-style-resources-loader \
     vue-router \

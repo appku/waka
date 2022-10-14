@@ -74,15 +74,19 @@ if [[ "$SOURCE_DEBUG" == 'true' ]]; then
 fi
 
 # prepare message
+JQ_MODS=""
 if [[ "$PARAMS_FORMAT" == "jido" ]]; then
     if [[ -n "$PARAMS_TITLE" ]]; then
         PARAMS_TITLE="AppKu™ Jido™"
     fi
     if [[ -z "$PARAMS_MESSAGE" ]]; then
-        PARAMS_MESSAGE="Job \"$BUILD_JOB_NAME\" on Build $BUILD_NAME"
-        if [[ -n "${BUILD_CREATED_BY-}" ]]; then
-            PARAMS_MESSAGE="$PARAMS_MESSAGE by ${BUILD_CREATED_BY-}"
-        fi
+        #no message, modify template output
+        JQ_MODS='del ( .cards[0].sections[0].widgets[1] )'
+    fi
+else
+    if [[ -z "$PARAMS_MESSAGE" ]]; then
+        #no message, modify template output
+        JQ_MODS='del ( .cards[0].sections[0].widgets[0] )'
     fi
 fi
 
@@ -93,17 +97,24 @@ PARAMS_MESSAGE=$(echo "$PARAMS_MESSAGE" | sed 's/"/\\"/g') \
 PARAMS_FORMAT="$PARAMS_FORMAT" \
 BUILD_TEAM_ID="$BUILD_TEAM_ID" \
 BUILD_TEAM_NAME="$BUILD_TEAM_NAME" \
+BUILD_TEAM_NAME_UPPER="${BUILD_TEAM_NAME^^}" \
 BUILD_PIPELINE_ID="$BUILD_PIPELINE_ID" \
 BUILD_PIPELINE_NAME="$BUILD_PIPELINE_NAME" \
+BUILD_PIPELINE_NAME_UPPER="${BUILD_PIPELINE_NAME^^}" \
 BUILD_JOB_ID="$BUILD_JOB_ID" \
 BUILD_JOB_NAME="$BUILD_JOB_NAME" \
+BUILD_JOB_NAME_UPPER="${BUILD_JOB_NAME^^}" \
 BUILD_ID="$BUILD_ID" \
 BUILD_NAME="$BUILD_NAME" \
 JIDO_HOST="https://$SOURCE_APPS_JIDO_HOST" \
-    envsubst < "/waka/formats/$SOURCE_PROVIDER-$PARAMS_FORMAT.json" > /waka/send.json
+    envsubst < "/waka/formats/$SOURCE_PROVIDER-$PARAMS_FORMAT.json" | jq "$JQ_MODS" > /waka/send.json
 
 # sending message
-curl -X POST -H "Content-Type: application/json" -d @/waka/send.json "$SOURCE_URI"
+if [[ "$SOURCE_DEBUG" == 'true' ]]; then
+    curl -X POST -H "Content-Type: application/json" -d @/waka/send.json "$SOURCE_URI"
+else
+    curl -X POST -H "Content-Type: application/json" -s -d @/waka/send.json "$SOURCE_URI"
+fi
 JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"Provider\", \"value\": \"$SOURCE_PROVIDER\" }]")
 
 # job return

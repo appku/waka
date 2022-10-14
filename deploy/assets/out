@@ -29,6 +29,7 @@ PARAMS_COMPOSE_TAG_FILE=$(jq ".params.compose.tag_file // \"\"" -r /tmp/stdin.js
 PARAMS_COMPOSE_TIMEOUT=$(jq ".params.compose.timeout // 15" -r /tmp/stdin.json)
 PARAMS_COMPOSE_NUKE_ORPHANS=$(jq ".params.compose.nuke_orphans // true" -r /tmp/stdin.json)
 PARAMS_COMPOSE_RECREATE=$(jq ".params.compose.recreate // true" -r /tmp/stdin.json)
+PARAMS_COMPOSE_ENV_OUTPUT="$(jq ".params.compose.envout // \"\"" -r /tmp/stdin.json)"
 PARAMS_COMPOSE_ENV="$(jq ".params.compose.env // \"\"" -r /tmp/stdin.json)"
 if [[ -z "$PARAMS_SOURCE" ]]; then
     echo -e "\033[0;31mThe 'source' step parameter must be set.\033[0m"
@@ -40,6 +41,9 @@ if [[ -n "$PARAMS_COMPOSE_TAG" && -n "$PARAMS_COMPOSE_TAG_FILE" ]]; then
 fi
 if [[ -n "$PARAMS_COMPOSE_ENV" ]]; then
     PARAMS_COMPOSE_ENV_KEYS=($(</tmp/stdin.json jq -r ".params.compose.env | keys | @tsv | gsub(\"\\t\";\" \")"))
+fi
+if [[ -n "$PARAMS_COMPOSE_ENV_OUTPUT" ]]; then
+    PARAMS_COMPOSE_ENV_OUTPUT_KEYS=($(</tmp/stdin.json jq -r ".params.compose.envout | @tsv | gsub(\"\\t\";\" \")"))
 fi
 if [[ "$SOURCE_DEBUG" == 'true' ]]; then
     echo "Debug mode enabled."
@@ -74,6 +78,15 @@ if [[ "$SOURCE_DEBUG" == 'true' ]]; then
     echo "PARAMS_COMPOSE_TIMEOUT = $PARAMS_COMPOSE_TIMEOUT"
     echo "PARAMS_COMPOSE_NUKE_ORPHANS = $PARAMS_COMPOSE_NUKE_ORPHANS"
     echo "PARAMS_COMPOSE_RECREATE = $PARAMS_COMPOSE_RECREATE"
+    if [[ -n "$PARAMS_COMPOSE_ENV_OUTPUT" ]]; then
+        echo "PARAMS_COMPOSE_ENV_OUTPUT = {SET}"
+        for i in "${PARAMS_COMPOSE_ENV_OUTPUT_KEYS[@]}"
+        do
+            echo " ➔ $i"
+        done
+    else
+        echo "PARAMS_COMPOSE_ENV = {NOT SET}"
+    fi
     if [[ -n "$PARAMS_COMPOSE_ENV" ]]; then
         echo "PARAMS_COMPOSE_ENV = {SET}"
         for i in "${PARAMS_COMPOSE_ENV_KEYS[@]}"
@@ -138,7 +151,7 @@ if [[ -n "$PARAMS_COMPOSE_ENV" ]]; then
         if [[ -n "$i" && "$i" != "HOME" && "$i" != "PATH" && "$i" != "PWD" && "$i" != "SHLVL" && "$i" != "DOCKER_HOST" ]]; then
             # capture the env value and escape "$" with "$$" for docker
             PARAMS_COMPOSE_ENV_VALUE="$(jq ".params.compose.env.$i // \"\"" -r /tmp/stdin.json | sed -r 's/\$/\$\$/g')"
-            echo "$i: $PARAMS_COMPOSE_ENV_VALUE" >> /tmp/compose.env
+            echo "$i=$PARAMS_COMPOSE_ENV_VALUE" >> /tmp/compose.env
             echo "Added env to /tmp/compose.env: \"$i\"=\"$PARAMS_COMPOSE_ENV_VALUE\"" >> appku.log
         fi
     done
@@ -153,6 +166,15 @@ fi
 docker compose --env-file /tmp/compose.env -f "$PARAMS_COMPOSE_FILE" up "${COMPOSE_ARGS[@]}" -d -t $PARAMS_COMPOSE_TIMEOUT
 JSON_OUT=$(echo "$JSON_OUT" | jq ".version.ref = \"$COMPOSE_PROJECT\"")
 JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"AppKu™ Compose Deploy\", \"value\": \"$COMPOSE_PROJECT\" }]")
+
+# additional outputs
+if [[ -n "$PARAMS_COMPOSE_ENV_OUTPUT" ]]; then
+    for i in "${PARAMS_COMPOSE_ENV_OUTPUT_KEYS[@]}"
+    do
+        ENV_OUTPUT_VALUE=$(grep -o "$i=.*" /tmp/compose.env | cut -f2- -d=)
+        JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"$i\", \"value\": \"$ENV_OUTPUT_VALUE\" }]")
+    done
+fi
 
 # housecleaning
 if [[ "$PARAMS_HOUSECLEANING" == "true" ]]; then
