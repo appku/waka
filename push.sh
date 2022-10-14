@@ -13,6 +13,16 @@ if [[ -z "$1" || "$1" == "deploy" ]]; then
     docker push appku/waka:deploy 
     docker push appku/waka:deploy-$APPKU_WAKA_VERSION
 fi
+if [[ -z "$1" || "$1" == "dotnet" ]]; then
+    echo "Pushing AppKu™ Waka :dotnet v$APPKU_WAKA_VERSION..."
+    docker push appku/waka:dotnet 
+    docker push appku/waka:dotnet-$APPKU_WAKA_VERSION
+fi
+if [[ -z "$1" || "$1" == "node" ]]; then
+    echo "Pushing AppKu™ Waka :node v$APPKU_WAKA_VERSION..."
+    docker push appku/waka:node 
+    docker push appku/waka:node-$APPKU_WAKA_VERSION
+fi
 if [[ -z "$1" || "$1" == "notify" ]]; then
     echo "Pushing AppKu™ Waka :notify v$APPKU_WAKA_VERSION..."
     docker push appku/waka:notify 

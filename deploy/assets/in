@@ -4,39 +4,5 @@ set -eu -o pipefail
 exec 3>&1 # stdout goes under specifically fd 3
 exec 1>&2 # all output to stderr, used for logging
 
-#dump stdin json to file
-set +e
-IFS= read -t 0.1 -r -d '' STDIN_DATA
-set -e
-[[ -n "$STDIN_DATA" ]] && printf "%s" "$STDIN_DATA" > /tmp/stdin.json
-
-#gather variables
-SOURCE_DEBUG=$(jq ".source.debug" -r /tmp/stdin.json)
-if [[ "$SOURCE_DEBUG" == 'true' ]]; then
-    echo "Debug mode enabled."
-    # printf "IN Pipeline JSON:\n$(cat /tmp/stdin.json)\n"
-    echo "## Pipeline Build"
-    echo "BUILD_TEAM_ID = $BUILD_TEAM_ID"
-    echo "BUILD_TEAM_NAME = $BUILD_TEAM_NAME"
-    echo "BUILD_PIPELINE_ID = $BUILD_PIPELINE_ID"
-    echo "BUILD_PIPELINE_NAME = $BUILD_PIPELINE_NAME"
-    echo "BUILD_JOB_ID = $BUILD_JOB_ID"
-    echo "BUILD_JOB_NAME = $BUILD_JOB_NAME"
-    echo "BUILD_ID = $BUILD_ID"
-    echo "BUILD_NAME = $BUILD_NAME"
-    echo
-    echo "## Source"
-    echo "SOURCE_DEBUG = $SOURCE_DEBUG"
-    echo
-    echo "## Versions"
-    echo "AppKu™ Waka Version = $APPKU_WAKA_VERSION"
-    echo "Docker Version = $(docker --version)"
-    echo
-    echo "## System"
-    echo "Running tree from current path '$(pwd)':"
-    echo "**Note** Ignoring hidden, node_modules/, coverage/, log/, docs/, obj/ directories."
-    tree -I 'node_modules|coverage|Log|log|Docs|docs|Obj|obj'
-fi
-
 # Gets do nothing for deployments.
-echo '{}' >&3
+echo '{ "version": {}, "metadata": [] }' >&3

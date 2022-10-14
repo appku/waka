@@ -9,9 +9,9 @@ cd "$1"
 
 #dump stdin json to file
 set +e
-IFS= read -t 0.01 -r -d '' STDIN_DATA
+IFS= read -t 10 -r -d '' STDIN_DATA
 set -e
-[[ -n $STDIN_DATA ]] && printf "%s" "$STDIN_DATA" > /tmp/stdin.json
+[[ -n "$STDIN_DATA" ]] && printf "%s" "$STDIN_DATA" > /tmp/stdin.json
 
 #gather variables
 JSON_OUT='{ "version": {}, "metadata": [] }'
