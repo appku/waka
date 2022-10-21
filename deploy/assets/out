@@ -23,6 +23,9 @@ SOURCE_APPS_USERNAME=$(jq ".source.apps.username // \"appku\"" -r /tmp/stdin.jso
 SOURCE_APPS_PASSWORD=$(jq ".source.apps.password // \"\"" -r /tmp/stdin.json)
 PARAMS_SOURCE=$(jq ".params.source" -r /tmp/stdin.json)
 PARAMS_HOUSECLEANING=$(jq ".params.housecleaning // true" -r /tmp/stdin.json)
+PARAMS_JIDO_ENABLED=$(jq ".params | has('jido')" -r /tmp/stdin.json)
+PARAMS_JIDO_PIPELINE=$(jq ".params.jido.pipeline // \"\"" -r /tmp/stdin.json)
+PARAMS_COMPOSE_ENABLED=$(jq ".params | has('compose')" -r /tmp/stdin.json)
 PARAMS_COMPOSE_FILE=$(jq ".params.compose.file // \"docker-compose.yml\"" -r /tmp/stdin.json)
 PARAMS_COMPOSE_TAG=$(jq ".params.compose.tag // \"\"" -r /tmp/stdin.json)
 PARAMS_COMPOSE_TAG_FILE=$(jq ".params.compose.tag_file // \"\"" -r /tmp/stdin.json)
@@ -71,7 +74,10 @@ if [[ "$SOURCE_DEBUG" == 'true' ]]; then
     fi
     echo
     echo "## Parameters"
+    echo "PARAMS_JIDO_ENABLED = $PARAMS_JIDO_ENABLED"
+    echo "PARAMS_JIDO_PIPELINE = $PARAMS_JIDO_PIPELINE"
     echo "PARAMS_SOURCE = $PARAMS_SOURCE"
+    echo "PARAMS_COMPOSE_ENABLED = $PARAMS_COMPOSE_ENABLED"
     echo "PARAMS_COMPOSE_FILE = $PARAMS_COMPOSE_FILE"
     echo "PARAMS_COMPOSE_TAG = $PARAMS_COMPOSE_TAG"
     echo "PARAMS_COMPOSE_TAG_FILE = $PARAMS_COMPOSE_TAG_FILE"
@@ -124,71 +130,84 @@ echo "Switching to docker context."
 docker context use appku &>> appku.log
 JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"AppKu™ Host\", \"value\": \"$SOURCE_HOST\" }]")
 
-# docker compose deploy
-echo "Running docker compose deployment from source '$(realpath $PARAMS_SOURCE)'."
-cd "$(realpath $PARAMS_SOURCE)"
-if [[ -n "$PARAMS_COMPOSE_TAG_FILE" ]]; then
-    TEMP_PARAMS_COMPOSE_TAG=$(cat "$PARAMS_COMPOSE_TAG_FILE")
-    if [[ -n "$TEMP_PARAMS_COMPOSE_TAG" ]]; then
-        PARAMS_COMPOSE_TAG="$TEMP_PARAMS_COMPOSE_TAG"
+
+if [[ "$PARAMS_JIDO_ENABLED" == "true" ]]; then
+    cd "$(realpath $PARAMS_SOURCE)"
+    if [[ -f "$PARAMS_JIDO_PIPELINE" ]]; then
+        JIDO_PIPELINE_DIR=`dirname $(realpath "$PARAMS_JIDO_PIPELINE")`
+        #TODO
+    else
+        echo -e "\033[0;31mAppKu™ Jido™ path '$JIDO_PIPELINE_DIR' is not pointing to a valid file.\033[0m"
+        exit 1
     fi
 fi
-# extra validation
-COMPOSE_PROJECT=$(yq ".name // \"\"" "$PARAMS_COMPOSE_FILE")
-if [[ -z "$COMPOSE_PROJECT" ]]; then
-    echo -e "\033[0;31mDocker compose file '$PARAMS_COMPOSE_FILE' is missing the 'name' value, which is required by AppKu™.\033[0m"
-    exit 1
-fi
-# deploy compose file
-touch /tmp/compose.env
-if [[ -n "$PARAMS_COMPOSE_TAG" ]]; then
-    echo "TAG=$PARAMS_COMPOSE_TAG" >> /tmp/compose.env
-    echo "IMAGE_TAG=$PARAMS_COMPOSE_TAG" >> /tmp/compose.env
-fi
-if [[ -n "$PARAMS_COMPOSE_ENV" ]]; then
-    for i in "${PARAMS_COMPOSE_ENV_KEYS[@]}"
-    do
-        if [[ -n "$i" && "$i" != "HOME" && "$i" != "PATH" && "$i" != "PWD" && "$i" != "SHLVL" && "$i" != "DOCKER_HOST" ]]; then
-            # capture the env value and escape "$" with "$$" for docker
-            PARAMS_COMPOSE_ENV_VALUE="$(jq ".params.compose.env.$i // \"\"" -r /tmp/stdin.json | sed -r 's/\$/\$\$/g')"
-            echo "$i=$PARAMS_COMPOSE_ENV_VALUE" >> /tmp/compose.env
-            echo "Added env to /tmp/compose.env: \"$i\"=\"$PARAMS_COMPOSE_ENV_VALUE\"" >> appku.log
+if [[ "$PARAMS_COMPOSE_ENABLED" == "true" ]]; then
+    # docker compose deploy
+    echo "Running docker compose deployment from source '$(realpath $PARAMS_SOURCE)'."
+    cd "$(realpath $PARAMS_SOURCE)"
+    if [[ -n "$PARAMS_COMPOSE_TAG_FILE" ]]; then
+        TEMP_PARAMS_COMPOSE_TAG=$(cat "$PARAMS_COMPOSE_TAG_FILE")
+        if [[ -n "$TEMP_PARAMS_COMPOSE_TAG" ]]; then
+            PARAMS_COMPOSE_TAG="$TEMP_PARAMS_COMPOSE_TAG"
         fi
-    done
-fi
-COMPOSE_ARGS=()
-if [[ "$PARAMS_COMPOSE_NUKE_ORPHANS" == "true" ]]; then
-    COMPOSE_ARGS+=(--remove-orphans)
-fi
-if [[ "$PARAMS_COMPOSE_RECREATE" == "true" ]]; then
-    COMPOSE_ARGS+=(--force-recreate)
-fi
-docker compose --env-file /tmp/compose.env -f "$PARAMS_COMPOSE_FILE" up "${COMPOSE_ARGS[@]}" -d -t $PARAMS_COMPOSE_TIMEOUT
-JSON_OUT=$(echo "$JSON_OUT" | jq ".version.ref = \"$COMPOSE_PROJECT\"")
-JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"AppKu™ Compose Deploy\", \"value\": \"$COMPOSE_PROJECT\" }]")
+    fi
+    # extra validation
+    COMPOSE_PROJECT=$(yq ".name // \"\"" "$PARAMS_COMPOSE_FILE")
+    if [[ -z "$COMPOSE_PROJECT" ]]; then
+        echo -e "\033[0;31mDocker compose file '$PARAMS_COMPOSE_FILE' is missing the 'name' value, which is required by AppKu™.\033[0m"
+        exit 1
+    fi
+    # deploy compose file
+    touch /tmp/compose.env
+    if [[ -n "$PARAMS_COMPOSE_TAG" ]]; then
+        echo "TAG=$PARAMS_COMPOSE_TAG" >> /tmp/compose.env
+        echo "IMAGE_TAG=$PARAMS_COMPOSE_TAG" >> /tmp/compose.env
+    fi
+    if [[ -n "$PARAMS_COMPOSE_ENV" ]]; then
+        for i in "${PARAMS_COMPOSE_ENV_KEYS[@]}"
+        do
+            if [[ -n "$i" && "$i" != "HOME" && "$i" != "PATH" && "$i" != "PWD" && "$i" != "SHLVL" && "$i" != "DOCKER_HOST" ]]; then
+                # capture the env value and escape "$" with "$$" for docker
+                PARAMS_COMPOSE_ENV_VALUE="$(jq ".params.compose.env.$i // \"\"" -r /tmp/stdin.json | sed -r 's/\$/\$\$/g')"
+                echo "$i=$PARAMS_COMPOSE_ENV_VALUE" >> /tmp/compose.env
+                echo "Added env to /tmp/compose.env: \"$i\"=\"$PARAMS_COMPOSE_ENV_VALUE\"" >> appku.log
+            fi
+        done
+    fi
+    COMPOSE_ARGS=()
+    if [[ "$PARAMS_COMPOSE_NUKE_ORPHANS" == "true" ]]; then
+        COMPOSE_ARGS+=(--remove-orphans)
+    fi
+    if [[ "$PARAMS_COMPOSE_RECREATE" == "true" ]]; then
+        COMPOSE_ARGS+=(--force-recreate)
+    fi
+    docker compose --env-file /tmp/compose.env -f "$PARAMS_COMPOSE_FILE" up "${COMPOSE_ARGS[@]}" -d -t $PARAMS_COMPOSE_TIMEOUT
+    JSON_OUT=$(echo "$JSON_OUT" | jq ".version.ref = \"$COMPOSE_PROJECT\"")
+    JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"AppKu™ Compose Deploy\", \"value\": \"$COMPOSE_PROJECT\" }]")
 
-# additional outputs
-if [[ -n "$PARAMS_COMPOSE_ENV_OUTPUT" ]]; then
-    for i in "${PARAMS_COMPOSE_ENV_OUTPUT_KEYS[@]}"
-    do
-        ENV_OUTPUT_VALUE=$(grep -o "$i=.*" /tmp/compose.env | cut -f2- -d=)
-        JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"$i\", \"value\": \"$ENV_OUTPUT_VALUE\" }]")
-    done
-fi
+    # additional outputs
+    if [[ -n "$PARAMS_COMPOSE_ENV_OUTPUT" ]]; then
+        for i in "${PARAMS_COMPOSE_ENV_OUTPUT_KEYS[@]}"
+        do
+            ENV_OUTPUT_VALUE=$(grep -o "$i=.*" /tmp/compose.env | cut -f2- -d=)
+            JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"$i\", \"value\": \"$ENV_OUTPUT_VALUE\" }]")
+        done
+    fi
 
-# housecleaning
-if [[ "$PARAMS_HOUSECLEANING" == "true" ]]; then
-    echo -e "\nPerforming housecleaning..."
-    set +o pipefail
-    echo "➔ Containers."
-    yes | docker container prune --filter until=72h &> /dev/null
-    echo "➔ Images."
-    yes | docker image prune --filter until=72h &> /dev/null
-    echo "➔ Volumes."
-    yes | docker volume prune &> /dev/null
-    echo "➔ Networks."
-    yes | docker network prune --filter until=72h &> /dev/null
-    echo "Housecleaning complete."
+    # housecleaning
+    if [[ "$PARAMS_HOUSECLEANING" == "true" ]]; then
+        echo -e "\nPerforming housecleaning..."
+        set +o pipefail
+        echo "➔ Containers."
+        yes | docker container prune --filter until=72h &> /dev/null
+        echo "➔ Images."
+        yes | docker image prune --filter until=72h &> /dev/null
+        echo "➔ Volumes."
+        yes | docker volume prune &> /dev/null
+        echo "➔ Networks."
+        yes | docker network prune --filter until=72h &> /dev/null
+        echo "Housecleaning complete."
+    fi
 fi
 
 # job return
