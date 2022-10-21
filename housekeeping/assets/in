@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -eu -o pipefail
+exec 3>&1 # stdout goes under specifically fd 3
+exec 1>&2 # all output to stderr, used for logging
+
+# Gets do nothing for deployments.
+echo '{ "version": {}, "metadata": [] }' >&3

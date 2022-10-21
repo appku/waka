@@ -1,0 +1,32 @@
+resource_types:
+  - name: appku-housekeeping
+    type: docker-image
+    source:
+      repository: appku/waka
+      tag: housekeeping
+
+resources:
+  - name: housekeeping
+    icon: broom
+    type: appku-housekeeping
+    source:
+      host: ((appku.HOST))
+      apps: 
+        registry: ((appku.APP_HOST_REGISTRY))
+        username: ((appku.APP_USER))
+        password: ((appku.APP_PASSWORD))
+        key: ((appku.SSH_KEY))
+  - name: schedule-30m
+    type: time
+    source: 
+      interval: 30m
+
+jobs:
+  - name: housekeeping
+    serial: true
+    build_log_retention:
+      builds: 144
+    plan:
+      - get: schedule-30m
+        trigger: true
+      - put: housekeeping

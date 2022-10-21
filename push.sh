@@ -18,6 +18,11 @@ if [[ -z "$1" || "$1" == "dotnet" ]]; then
     docker push appku/waka:dotnet 
     docker push appku/waka:dotnet-$APPKU_WAKA_VERSION
 fi
+if [[ -z "$1" || "$1" == "housekeeping" ]]; then
+    echo "Pushing AppKu™ Waka :housekeeping v$APPKU_WAKA_VERSION..."
+    docker push appku/waka:housekeeping 
+    docker push appku/waka:housekeeping-$APPKU_WAKA_VERSION
+fi
 if [[ -z "$1" || "$1" == "node" ]]; then
     echo "Pushing AppKu™ Waka :node v$APPKU_WAKA_VERSION..."
     docker push appku/waka:node 

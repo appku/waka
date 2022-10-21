@@ -22,7 +22,6 @@ SOURCE_APPS_JIDO_HOST=$(jq ".source.apps.jido // \"jido.$SOURCE_HOST\"" -r /tmp/
 SOURCE_APPS_USERNAME=$(jq ".source.apps.username // \"appku\"" -r /tmp/stdin.json)
 SOURCE_APPS_PASSWORD=$(jq ".source.apps.password // \"\"" -r /tmp/stdin.json)
 PARAMS_SOURCE=$(jq ".params.source" -r /tmp/stdin.json)
-PARAMS_HOUSECLEANING=$(jq ".params.housecleaning // true" -r /tmp/stdin.json)
 PARAMS_JIDO_ENABLED=$(jq ".params | has('jido')" -r /tmp/stdin.json)
 PARAMS_JIDO_PIPELINE=$(jq ".params.jido.pipeline // \"\"" -r /tmp/stdin.json)
 PARAMS_COMPOSE_ENABLED=$(jq ".params | has('compose')" -r /tmp/stdin.json)
@@ -192,21 +191,6 @@ if [[ "$PARAMS_COMPOSE_ENABLED" == "true" ]]; then
             ENV_OUTPUT_VALUE=$(grep -o "$i=.*" /tmp/compose.env | cut -f2- -d=)
             JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"$i\", \"value\": \"$ENV_OUTPUT_VALUE\" }]")
         done
-    fi
-
-    # housecleaning
-    if [[ "$PARAMS_HOUSECLEANING" == "true" ]]; then
-        echo -e "\nPerforming housecleaning..."
-        set +o pipefail
-        echo "➔ Containers."
-        yes | docker container prune --filter until=72h &> /dev/null
-        echo "➔ Images."
-        yes | docker image prune --filter until=72h &> /dev/null
-        echo "➔ Volumes."
-        yes | docker volume prune &> /dev/null
-        echo "➔ Networks."
-        yes | docker network prune --filter until=72h &> /dev/null
-        echo "Housecleaning complete."
     fi
 fi
 

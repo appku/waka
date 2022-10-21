@@ -16,6 +16,11 @@ if [[ -z "$1" || "$1" == "dotnet" ]]; then
     docker build --build-arg APPKU_WAKA_VERSION=$APPKU_WAKA_VERSION . -t appku/waka:dotnet -t appku/waka:dotnet-$APPKU_WAKA_VERSION
     popd
 fi
+if [[ -z "$1" || "$1" == "housekeeping" ]]; then
+    pushd housekeeping
+    docker build --build-arg APPKU_WAKA_VERSION=$APPKU_WAKA_VERSION . -t appku/waka:housekeeping -t appku/waka:housekeeping-$APPKU_WAKA_VERSION
+    popd
+fi
 if [[ -z "$1" || "$1" == "node" ]]; then
     pushd node
     docker build --build-arg APPKU_WAKA_VERSION=$APPKU_WAKA_VERSION . -t appku/waka:node -t appku/waka:node-$APPKU_WAKA_VERSION
