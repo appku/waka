@@ -134,7 +134,11 @@ if [[ "$PARAMS_JIDO_ENABLED" == "true" ]]; then
     cd "$(realpath $PARAMS_SOURCE)"
     if [[ -f "$PARAMS_JIDO_PIPELINE" ]]; then
         JIDO_PIPELINE_DIR=`dirname $(realpath "$PARAMS_JIDO_PIPELINE")`
-        #TODO
+        echo "Retrieving remote AppKu™ Jido™ fly client."
+        curl -o /tmp/fly -s -L "https://$SOURCE_APPS_JIDO_HOST/api/v1/cli?arch=amd64&platform=linux"
+        chmod +x /tmp/fly
+        echo "Performing login."
+        /tmp/fly -t main login --team-name main --concourse-url "https://$SOURCE_APPS_JIDO_HOST"
     else
         echo -e "\033[0;31mAppKu™ Jido™ path '$JIDO_PIPELINE_DIR' is not pointing to a valid file.\033[0m"
         exit 1
