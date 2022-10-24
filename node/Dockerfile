@@ -10,7 +10,7 @@ ENV NODE_PATH $NVM_DIR/v$NODE_VERSION/lib/node_modules
 ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 
 #update npm to latest
-RUN microdnf install -y --nodocs git \
+RUN microdnf install -y --nodocs git make g++ \
     && npm install -g npm
 
 #install commonly used dev/build packages to speed up builds.
