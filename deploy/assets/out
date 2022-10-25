@@ -17,6 +17,7 @@ set -e
 JSON_OUT='{ "version": {}, "metadata": [] }'
 SOURCE_DEBUG=$(jq ".source.debug" -r /tmp/stdin.json)
 SOURCE_HOST=$(jq ".source.host // \"localhost\"" -r /tmp/stdin.json)
+SOURCE_CERT=$(jq ".source.cert // \"\"" -r /tmp/stdin.json)
 SOURCE_APPS_REGISTRY_HOST=$(jq ".source.apps.registry // \"registry.$SOURCE_HOST\"" -r /tmp/stdin.json)
 SOURCE_APPS_JIDO_HOST=$(jq ".source.apps.jido // \"jido.$SOURCE_HOST\"" -r /tmp/stdin.json)
 SOURCE_APPS_USERNAME=$(jq ".source.apps.username // \"appku\"" -r /tmp/stdin.json)
@@ -63,6 +64,11 @@ if [[ "$SOURCE_DEBUG" == 'true' ]]; then
     echo "## Source"
     echo "SOURCE_DEBUG = $SOURCE_DEBUG"
     echo "SOURCE_HOST = $SOURCE_HOST"
+    if [[ -n "$SOURCE_CERT" ]]; then
+        echo "SOURCE_CERT = *********"
+    else
+        echo "SOURCE_CERT = {NOT SET}"
+    fi
     echo "SOURCE_APPS_REGISTRY_HOST = $SOURCE_APPS_REGISTRY_HOST"
     echo "SOURCE_APPS_JIDO_HOST = $SOURCE_APPS_JIDO_HOST"
     echo "SOURCE_APPS_USERNAME = $SOURCE_APPS_USERNAME"
@@ -114,6 +120,14 @@ if [[ "$SOURCE_DEBUG" == 'true' ]]; then
     tree -I 'node_modules|coverage|Log|log|Docs|docs|Obj|obj'
 fi
 
+# add certificate authority
+if [[ -n "${SOURCE_CERT-}" ]]; then
+    cat << EOF > /usr/local/share/ca-certificates/ca.pem
+${SOURCE_CERT}
+EOF
+    cat /usr/local/share/ca-certificates/ca.pem >> /etc/ssl/certs/ca-certificates.crt
+fi
+
 # ssh prep
 echo "Adding service account ssh key."
 jq ".source.apps.key" -r /tmp/stdin.json > ~/.ssh/id_rsa
@@ -123,6 +137,8 @@ echo "Ensuring permissions."
 chmod 700 ~/.ssh && chmod 600 ~/.ssh/id_rsa
 
 # connect to remote docker system
+echo "Logging into registry."
+echo "$SOURCE_APPS_PASSWORD" | docker login --username "$SOURCE_APPS_USERNAME" --password-stdin "$SOURCE_APPS_REGISTRY_HOST"
 echo "Creating docker context."
 docker context create appku --docker "host=ssh://$SOURCE_APPS_USERNAME@$SOURCE_HOST" &>> appku.log
 echo "Switching to docker context."
@@ -147,13 +163,22 @@ fi
 if [[ "$PARAMS_COMPOSE_ENABLED" == "true" ]]; then
     # docker compose deploy
     echo "Running docker compose deployment from source '$(realpath $PARAMS_SOURCE)'."
-    cd "$(realpath $PARAMS_SOURCE)"
     if [[ -n "$PARAMS_COMPOSE_TAG_FILE" ]]; then
+        if [[ ! -f "$PARAMS_COMPOSE_TAG_FILE" ]]; then
+            #file not found at init path, try source path
+            pushd "$(realpath $PARAMS_SOURCE)"
+            if [[ -f "$PARAMS_COMPOSE_TAG_FILE" ]]; then
+                PARAMS_COMPOSE_TAG_FILE=$(realpath $PARAMS_COMPOSE_TAG_FILE)
+                echo "Tag file not found while under working directory path, found under source path: $PARAMS_COMPOSE_TAG_FILE"
+            fi
+            popd
+        fi
         TEMP_PARAMS_COMPOSE_TAG=$(cat "$PARAMS_COMPOSE_TAG_FILE")
         if [[ -n "$TEMP_PARAMS_COMPOSE_TAG" ]]; then
             PARAMS_COMPOSE_TAG="$TEMP_PARAMS_COMPOSE_TAG"
         fi
     fi
+    cd "$(realpath $PARAMS_SOURCE)"
     # extra validation
     COMPOSE_PROJECT=$(yq ".name // \"\"" "$PARAMS_COMPOSE_FILE")
     if [[ -z "$COMPOSE_PROJECT" ]]; then
