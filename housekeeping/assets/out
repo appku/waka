@@ -75,15 +75,15 @@ if [[ "$PARAMS_CLEAN_DOCKER_SYSTEM" == "true" ]]; then
     echo -e "\nPerforming docker housekeeping..."
     set +o pipefail
     echo "➔ Containers."
-    yes | docker container prune --filter until=72h &> /dev/null
+    yes | docker container prune --filter until=48h
     echo "➔ Images."
-    yes | docker image prune --filter until=72h &> /dev/null
+    yes | docker image prune --all --filter until=48h
     echo "➔ Volumes."
-    yes | docker volume prune &> /dev/null
+    yes | docker volume prune
     echo "➔ Networks."
-    yes | docker network prune --filter until=72h &> /dev/null
+    yes | docker network prune --filter until=48h
     echo "➔ Build cache."
-    yes | docker builder prune --filter until=4h &> /dev/null
+    yes | docker builder prune --filter until=4h
 fi
 # if [[ "$PARAMS_CLEAN_DOCKER_REGISTRY" == "true" ]]; then
     #TODO
