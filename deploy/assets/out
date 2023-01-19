@@ -216,11 +216,18 @@ if [[ "$PARAMS_COMPOSE_ENABLED" == "true" ]]; then
 
     # additional outputs
     if [[ -n "$PARAMS_COMPOSE_ENV_OUTPUT" ]]; then
+        set +e
         for i in "${PARAMS_COMPOSE_ENV_OUTPUT_KEYS[@]}"
         do
             ENV_OUTPUT_VALUE=$(grep -o "$i=.*" /tmp/compose.env | cut -f2- -d=)
-            JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"$i\", \"value\": \"$ENV_OUTPUT_VALUE\" }]")
+            if [ $? -eq 0 ]; then
+                JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"$i\", \"value\": \"$ENV_OUTPUT_VALUE\" }]")
+            else
+                echo "Failed to output docker compose env: \"$i\""
+                echo "Are you sure it's in the docker compose file \"$PARAMS_COMPOSE_FILE\"?"
+            fi
         done
+        set -e
     fi
 fi
 
