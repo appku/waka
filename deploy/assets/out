@@ -210,6 +210,7 @@ if [[ "$PARAMS_COMPOSE_ENABLED" == "true" ]]; then
         COMPOSE_ARGS+=(--force-recreate)
     fi
     docker compose --env-file /tmp/compose.env -f "$PARAMS_COMPOSE_FILE" up "${COMPOSE_ARGS[@]}" -d -t $PARAMS_COMPOSE_TIMEOUT
+    echo "Docker compose deployment complete. Result was: $?"
     JSON_OUT=$(echo "$JSON_OUT" | jq ".version.ref = \"$COMPOSE_PROJECT\"")
     JSON_OUT=$(echo "$JSON_OUT" | jq ".metadata |= .+ [{ \"name\": \"AppKu™ Compose Deploy\", \"value\": \"$COMPOSE_PROJECT\" }]")
 

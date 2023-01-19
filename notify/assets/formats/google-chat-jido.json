@@ -12,8 +12,8 @@
                     "widgets": [
                         {
                             "keyValue": {
-                                "topLabel": "Team / Pipeline",
-                                "content": "${BUILD_TEAM_NAME} / ${BUILD_PIPELINE_NAME}",
+                                "topLabel": "Pipeline",
+                                "content": "${BUILD_TEAM_NAME} / ${BUILD_PIPELINE_NAME}<br>${BUILD_JOB_NAME} @ ${BUILD_NAME}<br><a href=\"${JIDO_HOST}\">${JIDO_HOST}</a>",
                                 "contentMultiline": "false",
                                 "onClick": {
                                     "openLink": {
