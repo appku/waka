@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -e
 
 DaySuffix() {
   case `date +%d` in
@@ -10,9 +10,13 @@ DaySuffix() {
 }
 
 SCRIPT_PATH=$(dirname "$0")
+PORT=${PORT:-8080}
 
-if [[ "$1" == "web" ]]; then
-    cd "$SCRIPT_PATH/server" && npm start
-else
+if [[ "$1" == "print" ]]; then
     echo -e "Hello AppKu™ friends, this is Waka v$APPKU_WAKA_VERSION. Today is $(date "+%A, the %-d`DaySuffix` of %B, %Y")!"
+else
+    echo -e "Hello AppKu™ friends, now serving the hello message on a web server :$PORT"
+    while true; do
+        echo -ne "HTTP/1.0 200 OK\nContent-Length: $(wc -c <hello.html)\n\n$(cat hello.html)" | nc -l -p 8080;
+    done
 fi

@@ -3,9 +3,14 @@
 <head>
     <style>
         body {
-            margin: 20%;
-            font: 16px Arial, sans-serif;
+            margin: 15%;
+            font: 16px Tahoma, Arial, sans-serif;
             text-align: center;
+        }
+
+        h2 {
+            font-weight: normal;
+            font-style: italic;
         }
 
         p {
@@ -13,7 +18,7 @@
         }
     </style>
     <script>
-        const APPKU_WAKA_VERSION = '1.0.0';
+        const APPKU_WAKA_VERSION = '1.1.0';
         const dateSuffix = function (dayOfMonth) {
             if (dayOfMonth === 1 || dayOfMonth === 21 || dayOfMonth === 31) {
                 return 'st';
@@ -38,9 +43,14 @@
 </head>
 
 <body>
-    <h1>Hello AppKu&trade; friends, this is Waka v<span id="version"></span>.</h1>
+    <img src="https://static.appku.com/logo/color/png/appku-ninja-vertical-square-256x256.png" alt="AppKu">
+    <h1>Hello Friends</h1>
+    <h2>There's Nothing Here Right Now</h2>
     <p>
-        Today is <span id="date"></span>!
+        Visit us @ <a href="https://appku.com">appku.com</a>
+    </p>
+    <p>
+        This is Waka v<span id="version"></span>. Today is <span id="date"></span>!
     </p>
 </body>
 

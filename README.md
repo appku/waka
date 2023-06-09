@@ -1,132 +1,123 @@
 # AppKu™ Waka
-The official AppKu worker docker image. This image contains scripts and tooling used by automated processes and
-developers working within the AppKu system.
+The official AppKu worker docker image. This image contains scripts and tooling that can be used by automated processes
+to perform common CI/CD operations, such as tools/CLIs for git, ssh, docker, and cloud environments. The images also 
+acts as a basic web application placeholder, spinning up to render a simple "Hello World" web app on port `:8080`.
 
-Waka has two distinct tags:
-1. The default `:latest` (and `:version`).
-   This tag is for automation, testing and development and includes tools and scripts for those purposes.
-   When used without a run command, it will execute the default `hello` script.
-   All scripts available are:
-   - `hello`: Outputs a simple hello message to stdout.
-   - `hello web`: Starts and runs a web server on port 8080 with a simple hello message.
-2. The :deploy (and `:deploy-version`). 
-   This tag is meant for use within AppKu™'s automation platform (*Jido*) to deploy docker-compose based applications
-   to AppKu™ hosts.
+The `appku/waka` is based on the `rockylinux/rockylinux:9-minimal` docker images, except for `docker-*` tags which, at
+this time, use the `docker:24.0.2-dind-alpine3.18` as a base. The default working directory in `appku/waka` images is 
+always: `/waka/`
 
-## Getting Started
-Pull down the images:
-```
-docker pull appku/waka
-docker pull appku/waka:deploy
-```
+## Contribution
+This repository is officially supported by [appku](https://appku.com) and welcomes contributions from outside sources
+to improve the project.
 
-Say hello:
-```
-docker run appku/waka
-```
+## Tags
+Tags are used to indicate the variant of the default `appku/waka` image. Each is tailored to a typical CI/CD use-case.
+All tags have a versioned variant (`<tag>-version`).
 
-Say hello in the browser:
-```
-docker run -p 8080:8080 -it appku/waka hello web
-```
+### `appku/waka` (`:latest`)
+The default tag is `:latest` (and `:version`).
+This tag is designated to act as both a placeholder, and for general scripted (bash/sh) automation, testing and 
+development and includes the basics and scripts for those purposes.
 
-Run a bash shell on a local docker appku network:
-```
-docker run -it --network appku appku/waka bash
-```
-
-### Deploying in AppKu™ Jido
-To use Waka to deploy a docker-compose project to an AppKu™ host, add the resource type to your pipeline:
-```yaml
-resource_types:
-  - name: appku-deploy
-    type: docker-image
-    source:
-      repository: appku/waka
-      tag: deploy
-```
-Then, add the resource with appropriate configuration values in the source definition.
-```yaml
-resources:
-  - name: appku-deploy
-    icon: flash
-    type: appku-deploy
-    source:
-      host: ((host))
-      apps: ((host))
-      debug: false
-      sa:
-        username: ((sa.username))
-        password: ((sa.password))
-        key: ((sa.key))
-```
-Next, add a `put` step into your job, and instruct the deployment where to find the docker-compose file.
-```yaml
-jobs:
-  - name: put-get
-    public: true
-    plan:
-      # ... 
-      # other steps to build and deploy docker images to registry.
-      #
-      - put: appku-deploy
-        params: 
-          source: compose
-          mode: compose #can be "image" or "compose"
-          env: #add your own custom environmental variables.
-```
-
-## Development
-This project contains multiple docker images that will be built when you execute the `build.sh` script.
-You can test these images by running a docker container (see §Getting Started above) based on the image.
-
-### Testing Image `:deploy` Tag
-The `:deploy` tag is a special image designed for docker-compose-based deployments to AppKu™ installations
-running AppKu™ Jido (based on [Concourse](https://concourse-ci.org/)).
-
-You will find a test pipeline configuration in the `deploy/` directory. You can deploy it to your AppKu™ installation
-to test the published `appku/waka` image using the following commands (requires the `fly` CLI tool installed).
-
-Once deployed, you should see a service deployed with a hello website at `https://hello.<your appku FQDN>`.
-
-**Step 1**
-
-Create a `vars.yml` file in `deploy/test/`. Add the keys and values for the variables defined in the
-`test-pipeline.yml` file:
-
-```
-host: <my appku host> #testing locally this is usually just "localhost".
-sa:
-  username: <service account name> #this is almost always "appku".
-  password: <app service account password> #password defined in AppKu™ Kagi for the service account.
-  key: |
-    -----BEGIN OPENSSH PRIVATE KEY-----
-    ... #the appku account ssh key
-    -----END OPENSSH PRIVATE KEY-----
-```
-
-**Step 2**
-*Note: you may need to include the `--insecure` argument in the `login` command if you are using a self-signed
-certificate (this is usually the case if developing locally).
+**Example**
 ```sh
-cd deploy/test/
-fly -t test login --team-name main --concourse-url https://jido.<your appku FQDN>
-fly validate-pipeline -c waka-hello-pipeline.yml
-fly -t test set-pipeline -p waka-hello -c waka-hello-pipeline.yml --check-creds --load-vars-from vars.yml
+#this command will output a hello message to STDOUT then exit.
+docker run -it appku/waka hello print
+
+#this runs a placeholder website served on port http://localhost:8080
+#using `-it` arguments will let you cleanly exit the container with CTRL+C.
+docker run -it -p 8080:8080 appku/waka
+
+#start an interactive bash shell.
+docker run -it appku/waka bash
+
+#run an exectable in the container
+docker run -it appku/waka /some/path/and/command
+
+#run a string command through bash.
+docker run -it appku/waka bash -ce "echo 'test'"
 ```
 
+By default the `:latest` tag will execute the `hello` script which...
+- `hello`: Starts and runs a web server on port 8080 with a simple hello message.
+- `hello print`: Outputs a simple hello message to stdout.
 
-**Step 3**
-Verify functionality/tweak and redeploy (Step 2) as needed. When you are done, you can remove the pipeline by using
-the following command:
+### `appku/waka:cloud-gcp`
+This image provides addtiontal tooling and the official [Google Cloud CLI](https://cloud.google.com/sdk/gcloud) on
+top of the existing `appku/waka` image.
 
-```sh
-fly -t test destroy-pipeline -p waka-hello
-```
+### `appku/waka:docker`
+This image builds and pushes a `Dockerfile` and provides access to Docker-in-Docker (DIND) using the base
+`docker:24.0.2-dind-alpine3.18` image. It will automatically tag the image as `:latest` and with a semver (version)
+detected from an optional `package.json` in the same location as the `Dockerfile`. You can optionally override the 
+tags with an `IMAGE_TAG` ENV variable.
 
-#### Troubleshooting
-You can dive into a the running `:deploy` container using the intercept command in `fly`. For example, the following
-will intercept the `action-point/deploy` job and prompt you to select the task container.
-```sh
-fly -t test intercept -j waka-hello/put-get
-```
+#### Required ENV Variables
+- `IMAGE`    
+  The name of the image to build (without the tag).
+  **Example:**: `appku/waka`.
+
+#### Optional ENV Variables
+- `DOCKER_REGISTRY`   
+  Specifies a docker registry to login to. By default this will be [dockerhub](https://hub.docker.com/).
+  **Example**: `registry-1.docker.io`
+- `DOCKER_REGISTRY_CA_PEM`    
+  The certificate authority (CA) certificate in PEM format.
+- `DOCKER_REGISTRY_PASSWORD`    
+  If your docker registry requires basic authentication, you'll need to specify the password. This should be provided
+  in tandem with `DOCKER_REGISTRY_USER` to perform a `docker login` to the remote host registry 
+  (`DOCKER_REGISTRY`). 
+- `DOCKER_REGISTRY_USER`   
+  The docker registry username used to login.
+- `IMAGE_TAG`   
+  Specifies the built docker image's tag. Overriding the default of `:latest` and a detected semver tag (from a
+  `package.json` file).    
+  **Example**: `my-tag`
+
+### `appku/waka:docker-compose`
+This image deploys a docker compose service using Docker-in-Docker (DIND) with the base `docker:24.0.2-dind-alpine3.18`
+image. It provides a default command `deploy` to connect to a remote docker host and deploy a docker compose file. 
+
+The `deploy` command expects the following environmental variables in order to remotely deploy the docker-compose
+service. It is good practice to set your docker-compose `service` name to avoid collisions with other services on the
+remote docker host. You can find an example docker-compose file in the `docker-compose/` directory in this repo.
+
+#### Required ENV Variables
+- `REMOTE_DOCKER_HOST`    
+  The remote host SSH fully-qualified domain name (FQDN).   
+  **Example**: `host.some.domain`
+- `REMOTE_DOCKER_HOST_SSH_KEY`    
+  The private SSH key used to connect and authenticate with the remote host.
+- `REMOTE_DOCKER_HOST_SSH_USER`    
+  The username of the SSH user on the remote host.
+
+#### Optional ENV Variables 
+- `DOCKER_REGISTRY`   
+  Specifies a docker registry to login to. By default this will be the `REMOTE_DOCKER` value.    
+  **Example**: `registry-1.docker.io`
+- `DOCKER_REGISTRY_CA_PEM`    
+  The certificate authority (CA) certificate in PEM format.
+- `DOCKER_REGISTRY_PASSWORD`    
+  If your docker compose pulls images from a registry that requires basic authentication, you'll need to
+  specify the password. This should be provided in tandem with `DOCKER_REGISTRY_USER` to perform a `docker login`
+  to the remote host registry (`DOCKER_REGISTRY`). 
+- `DOCKER_REGISTRY_USER`   
+  The docker registry username (if needed). If you are pulling images in your docker compose service from
+  public repositories you do not need to specify a username or password.
+- `REMOTE_DOCKER_HOST_SSH_PORT`    
+  An optional override of the SSH port for the remote host. Defaults to `22`.    
+  **Example**: `2211`
+
+### `appku/waka:dotnet`
+This image provides [Microsoft's .Net Core](https://dotnet.microsoft.com/en-us/) and the 
+[`dotnet-script`](https://github.com/dotnet-script/dotnet-script) command. 
+It builds on top of the existing `appku/waka` image but overrides the default command to instead run `dotnet build`.
+
+The default command assumes there is a dotnet project located in the default working directory (`/waka/`).
+
+### `appku/waka:node`
+This image provides [NodeJS](https://nodejs.org/en). It builds on top of the existing `appku/waka` image 
+but overrides the default command to instead run `node install`.
+
+The default command assumes there is a node project located in the default working directory (`/waka/`).

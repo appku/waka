@@ -1,7 +1,7 @@
-FROM docker:20.10.17-cli-alpine3.16
+FROM docker:24.0.2-dind-alpine3.18
 
 #add packages
-RUN apk add --update --no-cache -q openssh nano bash curl jq yq tar gzip tree ripgrep
+RUN apk add --update --no-cache -q nano bash curl jq yq tar gzip tree ripgrep
 
 #ssh prep (ssh not installed)
 RUN mv /root /waka \
@@ -12,14 +12,10 @@ RUN mv /root /waka \
     && chmod 644 /waka/.ssh/known_hosts
 
 #include scripts
-COPY assets /waka/
-RUN mkdir -p /opt/resource \
-    && ln -s /waka/check /opt/resource/check \
-    && ln -s /waka/in /opt/resource/in \
-    && ln -s /waka/out /opt/resource/out
+COPY build-push /waka/
 
 #ready workspace
-ARG APPKU_WAKA_VERSION=1.0.0
+ARG APPKU_WAKA_VERSION=1.1.0
 ENV APPKU_WAKA_VERSION=${APPKU_WAKA_VERSION}
 ENV PATH="${PATH}:/waka"
 ENV HOME="/waka"
@@ -27,3 +23,4 @@ WORKDIR /waka
 
 #set default shell to bash
 SHELL ["/bin/bash", "-c"]
+CMD ["build-push"]

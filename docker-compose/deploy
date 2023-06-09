@@ -1,0 +1,48 @@
+#/bin/bash 
+
+set -eu -o pipefail
+
+# validate required env
+if [[ -z "$REMOTE_DOCKER_HOST" ]]; then
+    echo "Missing required ENV variable value: REMOTE_DOCKER_HOST"
+    exit 1
+fi
+if [[ -z "$REMOTE_DOCKER_HOST_SSH_KEY" ]]; then
+    echo "Missing required ENV variable value: REMOTE_DOCKER_HOST_SSH_KEY"
+    exit 2
+fi
+if [[ -z "$REMOTE_DOCKER_HOST_SSH_USER" ]]; then
+    echo "Missing required ENV variable value: REMOTE_DOCKER_HOST_SSH_USER"
+    exit 3
+fi
+if [[ -n "${DOCKER_REGISTRY_USER-}" ]] && [[ -z "${DOCKER_REGISTRY_PASSWORD-}" ]]; then
+    echo "Missing ENV variable value: DOCKER_REGISTRY_PASSWORD"
+    exit 4
+fi
+# add certificate authority
+if [[ -n "${DOCKER_REGISTRY_CA_PEM-}" ]]; then
+    echo "Adding CA certificate."
+    cat << EOF > /usr/local/share/ca-certificates/ca.pem
+${DOCKER_REGISTRY_CA_PEM}
+EOF
+    cat /usr/local/share/ca-certificates/ca.pem >> /etc/ssl/certs/ca-certificates.crt
+fi
+if [[ -n "${DOCKER_HOST-}" ]]; then
+    unset DOCKER_HOST
+fi
+# deploy
+echo "Adding registry host as known-host."
+ssh-keyscan "$REMOTE_DOCKER_HOST" > /waka/.ssh/known_hosts
+echo "Adding service account SSH key."
+printf -- "$REMOTE_DOCKER_HOST_SSH_KEY\n" > /waka/.ssh/id_rsa
+echo "Ensuring permissions."
+chmod 700 /waka/.ssh && chmod 600 /waka/.ssh/id_rsa && chmod 644 /waka/.ssh/known_hosts
+if [[ -n "${DOCKER_REGISTRY_USER-}" ]]; then
+    echo "Logging into registry \"${DOCKER_REGISTRY:-REMOTE_DOCKER_HOST}\"."
+    echo "$DOCKER_REGISTRY_PASSWORD" | docker login --username "$DOCKER_REGISTRY_USER" --password-stdin "${DOCKER_REGISTRY:-REMOTE_DOCKER_HOST}"
+fi
+echo "Creating docker context."
+docker context create appku --docker "host=ssh://$REMOTE_DOCKER_HOST_SSH_USER@$REMOTE_DOCKER_HOST"
+echo "Switching to docker context."
+docker context use appku
+docker compose -f docker-compose.yaml up -d -t 15 --quiet-pull --force-recreate --remove-orphans --pull=always
