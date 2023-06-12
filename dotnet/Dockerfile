@@ -11,4 +11,6 @@ RUN microdnf install -y libicu krb5-workstation \
 ENV PATH=/usr/share/dotnet:/root/.dotnet/tools:$PATH
 RUN dotnet tool install -g dotnet-script
 
+COPY scmp-deploy scmp-deploy.csx /waka/
+
 CMD ["dotnet", "build", "--nologo"]

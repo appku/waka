@@ -1,0 +1,41 @@
+#!/bin/bash
+
+set -eu
+
+echo "dotnet Version: $(dotnet --version)"
+echo "dotnet-script Version: $(dotnet-script --version)"
+echo "Path: $(pwd)"
+if [[ -n "${SCMP_CA_PEM:-}" ]]; then
+    cat << EOF > /etc/pki/ca-trust/source/anchors/ca.pem
+${SCMP_CA_PEM}
+EOF
+    echo "Updating CA trusts."
+    update-ca-trust
+fi
+if [[ -n "${SCMP_KEYTAB_BASE64-}" ]]; then
+    echo "Writing Keytab."
+    sed -i -r '/^\s+default_ccache_name/d' /etc/krb5.conf
+    cat << EOF > /etc/krb5.conf.d/domain
+[libdefaults]
+default_realm = ${SCMP_AD_REALM}
+[realms]
+${SCMP_AD_REALM} = {
+    kdc = ${SCMP_AD_DOMAIN_CONTROLLER}
+}
+EOF
+    echo "$SCMP_KEYTAB_BASE64" | base64 -d > user.keytab
+    kinit "$SCMP_KEYTAB_USERNAME" -k -t user.keytab
+fi
+echo "Building dotnet project."
+if [[ -n "${SCMP_BUILD_PATH:-}" ]]; then
+    pushd "$SCMP_BUILD_PATH"
+fi
+dotnet build
+if [[ -n "${SCMP_BUILD_PATH:-}" ]]; then
+    popd
+fi
+echo "Running compare & apply."
+sed -i 's/<ConnectionString>[^</]*/<ConnectionString>((connection_string))/' "$SCMP_COMPARE_FILE_PATH"
+sed -i 's/DacPacBasedModelProvider/FileBasedModelProvider/g' "$SCMP_COMPARE_FILE_PATH"
+dotnet-script ./scmp-deploy.csx "$SCMP_COMPARE_FILE_PATH"
+echo "Done."
