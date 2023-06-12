@@ -48,4 +48,6 @@ RUN npm i -g \
     vue-router \
     vue-template-compiler
 
-CMD ["npm", "install", "--no-fund", "--no-audit", "--skip-installed", "--prefer-offline"]
+COPY node-ops /waka/
+
+CMD ["node-ops"]

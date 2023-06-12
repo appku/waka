@@ -1,10 +1,9 @@
 FROM appku/waka:docker
 
 #add packages
-RUN apk add --update --no-cache -q openssh \
-    && rm build-push
+RUN apk add --update --no-cache -q openssh
 
 #include scripts
-COPY deploy /waka/
+COPY docker-compose-ops /waka/
 
-CMD ["deploy"]
+CMD ["docker-compose-ops"]

@@ -1,4 +1,4 @@
-#/bin/bash 
+#!/bin/bash 
 
 set -eu -o pipefail
 
@@ -24,7 +24,7 @@ if [[ -n "${DOCKER_REGISTRY_USER-}" ]]; then
     echo "Logging into registry \"${DOCKER_REGISTRY:-dockerhub}\"."
     if [[ -n "${DOCKER_REGISTRY-}" ]] || [[ -n "${REMOTE_DOCKER_HOST-}" ]]; then
         #other registry
-        echo "$DOCKER_REGISTRY_PASSWORD" | docker login --username "$DOCKER_REGISTRY_USER" --password-stdin "${DOCKER_REGISTRY:-REMOTE_DOCKER_HOST}"
+        echo "$DOCKER_REGISTRY_PASSWORD" | docker login --username "$DOCKER_REGISTRY_USER" --password-stdin "${DOCKER_REGISTRY:-$REMOTE_DOCKER_HOST}"
     else
         #dockerhub
         echo "$DOCKER_REGISTRY_PASSWORD" | docker login --username "$DOCKER_REGISTRY_USER" --password-stdin

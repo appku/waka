@@ -12,7 +12,7 @@ RUN mv /root /waka \
     && chmod 644 /waka/.ssh/known_hosts
 
 #include scripts
-COPY build-push /waka/
+COPY docker-ops /waka/
 
 #ready workspace
 ARG APPKU_WAKA_VERSION=1.1.0
@@ -23,4 +23,4 @@ WORKDIR /waka
 
 #set default shell to bash
 SHELL ["/bin/bash", "-c"]
-CMD ["build-push"]
+CMD ["docker-ops"]
