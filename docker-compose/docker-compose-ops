@@ -1,5 +1,8 @@
 #!/bin/bash 
 
+# Copyright AppKu
+# https://github.com/appku/waka
+
 set -eu -o pipefail
 
 # validate required env

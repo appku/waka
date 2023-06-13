@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Copyright AppKu
+# https://github.com/appku/waka
+
 set -eu
 
 echo "dotnet Version: $(dotnet --version)"
@@ -23,7 +26,7 @@ ${SCMP_AD_REALM} = {
     kdc = ${SCMP_AD_DOMAIN_CONTROLLER}
 }
 EOF
-    echo "$SCMP_KEYTAB_BASE64" | base64 -d > user.keytab
+    echo -e "$SCMP_KEYTAB_BASE64" | base64 -d > user.keytab
     kinit "$SCMP_KEYTAB_USERNAME" -k -t user.keytab
 fi
 echo "Building dotnet project."
@@ -35,7 +38,9 @@ if [[ -n "${SCMP_BUILD_PATH:-}" ]]; then
     popd
 fi
 echo "Running compare & apply."
-sed -i 's/<ConnectionString>[^</]*/<ConnectionString>((connection_string))/' "$SCMP_COMPARE_FILE_PATH"
+if [[ -n "${SCMP_CONNECTION_STRING:-}" ]]; then
+    sed -i "s/<ConnectionString>[^</]*/<ConnectionString>$SCMP_CONNECTION_STRING/" "$SCMP_COMPARE_FILE_PATH"
+fi
 sed -i 's/DacPacBasedModelProvider/FileBasedModelProvider/g' "$SCMP_COMPARE_FILE_PATH"
-dotnet-script ./scmp-deploy.csx "$SCMP_COMPARE_FILE_PATH"
+dotnet-script /waka/scmp-deploy.csx "$SCMP_COMPARE_FILE_PATH"
 echo "Done."

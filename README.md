@@ -116,6 +116,53 @@ It builds on top of the existing `appku/waka` image but overrides the default co
 
 The default command assumes there is a dotnet project located in the default working directory (`/waka/`).
 
+This image also provides a script to deploy a dotnet core *SQL Server database project* using a SQL Compare file 
+(`*.scmp`). To use it directly, change the entrypoint to `scmp-deploy` and provide the following variables:
+
+#### Required ENV Variables
+- `SCMP_COMPARE_FILE_PATH`    
+  The path to the SQL Compare file to run.    
+  **Example**: `database/compare.scmp`
+
+#### Optional ENV Variables 
+- `SCMP_AD_REALM`    
+  When specifying a keytab, you'll need to set your realm for kerberos authentication.    
+  **Example**: `MY.OFFICE.DOMAIN`
+- `SCMP_AD_DOMAIN_CONTROLLER`    
+  Set the domain controller FQDN for kerberos authentication (keytab).    
+  **Example**: `acme-dc.my.office.domain`
+- `SCMP_BUILD_PATH`    
+  Directory path to the location of a SQL Project file (`*.sqlproj`).
+- `SCMP_CA_PEM`    
+  The certificate authority (CA) certificate in PEM format.
+- `SCMP_CONNECTION_STRING`    
+  Override the connection string in the SQL Compare file.
+- `SCMP_KEYTAB_BASE64`    
+  The base64'd value of the keytab file.    
+  You can create a keytab in a variety of methods, with varying settings (see examples of a common approach) that will conform to your domain setup. 
+  
+  Once you have the binary keytab, you can convert it to it's base64 value by running: `base64 <keytab file> > output.kt64`
+
+  It's recommended (but not required) that you convert newlines to newline-literals in your `SCMP_KEYTAB_BASE64` value, so you end up with `\n` literals and a base64'd keytab in one single line (value).    
+  **Example** `SCMP_KEYTAB_BASE64=...AA3+I26A\n3HC9Ew...`
+
+  ##### Keytab on Windows
+  ```sh
+  ktpass /princ <username>@<domain realm> /mapuser <username> /pass <password> /ptyp    KRB5_NT_PRINCIPAL /crypto ALL /Target <domain realm> /out <username>.keytab
+  ```
+
+  ##### Keytab on Linux
+  ```sh
+  ktutil
+  > add_entry -password -p <username>@<my domain> -k 1 -e aes128-cts-hmac-sha1-96
+  > add_entry -password -p <username>@<my domain> -k 1 -e aes256-cts-hmac-sha1-96
+  > add_entry -password -p <username>@<my domain> -k 1 -e camellia256-cts-cmac
+  > add_entry -password -p <username>@<my domain> -k 1 -e rc4-hmac
+  > add_entry -password -p <username>@<my domain> -k 1 -e aes256-sha1
+  > wkt <username>.keytab
+  > exit
+  ```
+
 ### `appku/waka:node`
 This image provides [NodeJS](https://nodejs.org/en). It builds on top of the existing `appku/waka` image 
 but overrides the default command to instead run `node install`.

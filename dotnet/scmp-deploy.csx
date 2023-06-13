@@ -23,6 +23,7 @@ if (Args.Count == 0) {
         return 1;
     }
     //run from the location of the scmp file.
+    Console.WriteLine($"Running compare with file: \"{scmpFilePath}\"");
     //Directory.SetCurrentDirectory(Path.GetDirectoryName(scmpFilePath));
 }
 //load comparison
