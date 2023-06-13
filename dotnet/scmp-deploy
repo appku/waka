@@ -37,7 +37,7 @@ dotnet build
 if [[ -n "${SCMP_BUILD_PATH:-}" ]]; then
     popd
 fi
-echo "Running compare & apply."
+echo "Running SQL Compare script."
 if [[ -n "${SCMP_CONNECTION_STRING:-}" ]]; then
     sed -i "s/<ConnectionString>[^</]*/<ConnectionString>$SCMP_CONNECTION_STRING/" "$SCMP_COMPARE_FILE_PATH"
 fi

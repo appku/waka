@@ -116,8 +116,8 @@ It builds on top of the existing `appku/waka` image but overrides the default co
 
 The default command assumes there is a dotnet project located in the default working directory (`/waka/`).
 
-This image also provides a script to deploy a dotnet core *SQL Server database project* using a SQL Compare file 
-(`*.scmp`). To use it directly, change the entrypoint to `scmp-deploy` and provide the following variables:
+This image also provides a script to compare and deploy a dotnet core *SQL Server database project* using a SQL Compare
+file ()`*.scmp`). To use it directly, change the entrypoint to `scmp-deploy` and provide the following variables:
 
 #### Required ENV Variables
 - `SCMP_COMPARE_FILE_PATH`    
@@ -131,6 +131,10 @@ This image also provides a script to deploy a dotnet core *SQL Server database p
 - `SCMP_AD_DOMAIN_CONTROLLER`    
   Set the domain controller FQDN for kerberos authentication (keytab).    
   **Example**: `acme-dc.my.office.domain`
+- `SCMP_APPLY`    
+  Apply any changes detected after comparison to the database. Expects a truthy value, such as "true", "yes", "1", etc.
+  Changes *will __not__ be applied* unless this variable is set to a truthy value.    
+  **Example**: `true`
 - `SCMP_BUILD_PATH`    
   Directory path to the location of a SQL Project file (`*.sqlproj`).
 - `SCMP_CA_PEM`    

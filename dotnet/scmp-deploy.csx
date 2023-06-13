@@ -54,9 +54,14 @@ if (comparisonResult != null) {
         }
         return 1;
     }
+    string apply = Environment.GetEnvironmentVariable("SCMP_APPLY");
     //perform deploy
-    if (needsDeploy) {
-        Console.WriteLine("Running deployment...");
+    Console.WriteLine(String.Empty);
+    if (apply != null && (apply == "1" 
+        || apply.StartsWith("t", StringComparison.InvariantCultureIgnoreCase) 
+        || apply.StartsWith("y", StringComparison.InvariantCultureIgnoreCase) 
+        ) && needsDeploy) {
+        Console.WriteLine("Changes were detected. Applying changes.");
         SchemaComparePublishResult publishResult = comparisonResult.PublishChangesToDatabase();
         Console.WriteLine(publishResult.Success ? "\u2714 Publish succeeded." : "\u2717 Publish failed.");
         if (publishResult.Success == false) {
@@ -65,6 +70,9 @@ if (comparisonResult != null) {
             }
             return 1;
         }
+    } else if (needsDeploy) {
+        Console.WriteLine("Changes were detected, but nothing was been applied to the target.");
+        Console.WriteLine("Applying changes has been disabled (see 'SCMP_APPLY' setting).");
     }
 } else {
     Console.WriteLine("Unable to make comparison. The comparison failed (possbily a connection issue).");
