@@ -6,7 +6,7 @@
 set -eu -o pipefail
 
 if [[ -f package.json ]]; then
-    npm install --no-fund --no-audit --skip-installed --prefer-offline
+    npm install --no-fund --no-audit --skip-installed --prefer-offline --dev
     if cat package.json | grep '"lint":' &> /dev/null; then
         npm run lint
     else
