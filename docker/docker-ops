@@ -34,18 +34,26 @@ if [[ -n "${DOCKER_REGISTRY_USER:-}" ]]; then
     fi
 fi
 # build
+BUILD_ARGS=()
+echo "Cached image: ${CACHE_IMAGE:-}"
+if [[ -n "${CACHE_IMAGE:-}" ]]; then
+    echo "Adding docker image cache flag for cache image: $CACHE_IMAGE:${CACHE_IMAGE_TAG:-latest}"
+    docker pull "$CACHE_IMAGE:${CACHE_IMAGE_TAG:-latest}" || true
+    BUILD_ARGS+=(--cache-from "$CACHE_IMAGE:${CACHE_IMAGE_TAG:-latest}")
+fi
 PACKAGE_VERSION=$(awk -F'"' '/"version": ".+"/{ print $4; exit; }' package.json)
 if [[ -z "${IMAGE_TAG:-}" ]]; then
+    BUILD_ARGS+=(-t "$IMAGE:latest")
     if [[ -z "$PACKAGE_VERSION" ]]; then
         echo "Building image with :latest tag"
-        docker build . -t "$IMAGE:latest"
     else
         echo "Building image with :latest and :$PACKAGE_VERSION tag"
-        docker build . -t "$IMAGE:latest" -t "$IMAGE:$PACKAGE_VERSION"
+        BUILD_ARGS+=(-t "$IMAGE:$PACKAGE_VERSION")
     fi
 else
     echo "Building image with :$IMAGE_TAG tag"
-    docker build . -t "$IMAGE:$IMAGE_TAG"
+    BUILD_ARGS+=(-t "$IMAGE:$IMAGE_TAG")
 fi
+docker build ${BUILD_ARGS[@]} .
 # push
 docker push -a "$IMAGE"
