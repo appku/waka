@@ -41,8 +41,8 @@ printf -- "$REMOTE_DOCKER_HOST_SSH_KEY\n" > /waka/.ssh/id_rsa
 echo "Ensuring permissions."
 chmod 700 /waka/.ssh && chmod 600 /waka/.ssh/id_rsa && chmod 644 /waka/.ssh/known_hosts
 if [[ -n "${DOCKER_REGISTRY_USER-}" ]]; then
-    echo "Logging into registry \"${DOCKER_REGISTRY:-REMOTE_DOCKER_HOST}\"."
-    echo "$DOCKER_REGISTRY_PASSWORD" | docker login --username "$DOCKER_REGISTRY_USER" --password-stdin "${DOCKER_REGISTRY:-REMOTE_DOCKER_HOST}"
+    echo "Logging into registry \"${DOCKER_REGISTRY:-$REMOTE_DOCKER_HOST}\"."
+    echo "$DOCKER_REGISTRY_PASSWORD" | docker login --username "$DOCKER_REGISTRY_USER" --password-stdin "${DOCKER_REGISTRY:-$REMOTE_DOCKER_HOST}"
 fi
 echo "Creating docker context."
 docker context create appku --docker "host=ssh://$REMOTE_DOCKER_HOST_SSH_USER@$REMOTE_DOCKER_HOST"
