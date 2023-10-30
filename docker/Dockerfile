@@ -1,4 +1,4 @@
-FROM docker:24.0.2-dind-alpine3.18
+FROM docker:24.0.7-dind-alpine3.18
 
 #add packages
 RUN apk add --update --no-cache -q nano bash curl jq yq tar gzip tree ripgrep

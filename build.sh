@@ -31,6 +31,6 @@ if [[ -z "$TAG" || "$TAG" == "dotnet" ]]; then
 fi
 if [[ -z "$TAG" || "$TAG" == "node" ]]; then
     pushd node
-    docker build --build-arg APPKU_WAKA_VERSION=$APPKU_WAKA_VERSION . -t appku/waka:node -t appku/waka:node-$APPKU_WAKA_VERSION
+    docker build --build-arg APPKU_WAKA_VERSION=$APPKU_WAKA_VERSION . -t appku/waka:node -t appku/waka:node-$APPKU_WAKA_VERSION --progress=plain
     popd
 fi
