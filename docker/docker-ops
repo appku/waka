@@ -54,6 +54,12 @@ else
     echo "Building image with :$IMAGE_TAG tag"
     BUILD_ARGS+=(-t "$IMAGE:$IMAGE_TAG")
 fi
+if [[ -n "${DOCKER_BUILD_ARGS:-}" ]]; then
+    for KEY in ${DOCKER_BUILD_ARGS//,/ } ; do 
+        echo "Adding build arg: \"$KEY\""
+        BUILD_ARGS+=("--build-arg $KEY")
+    done    
+fi
 docker build ${BUILD_ARGS[@]} .
 # push
 docker push -a "$IMAGE"
