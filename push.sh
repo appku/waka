@@ -9,6 +9,11 @@ if [[ -z "$TAG" || "$TAG" == "waka" || "$TAG" == "latest" ]]; then
     docker push appku/waka:latest
     docker push appku/waka:$APPKU_WAKA_VERSION
 fi
+if [[ -z "$TAG" || "$TAG" == "cloud-az" ]]; then
+    echo "Pushing AppKu™ Waka :cloud-az v$APPKU_WAKA_VERSION..."
+    docker push appku/waka:cloud-az
+    docker push appku/waka:cloud-az-$APPKU_WAKA_VERSION
+fi
 if [[ -z "$TAG" || "$TAG" == "cloud-gcp" ]]; then
     echo "Pushing AppKu™ Waka :cloud-gcp v$APPKU_WAKA_VERSION..."
     docker push appku/waka:cloud-gcp

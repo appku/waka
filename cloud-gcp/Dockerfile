@@ -17,6 +17,6 @@ gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg\n\
 
 #update & install packages
 RUN microdnf install -y --nodocs \
-        google-cloud-sdk \
-        libicu openssl unzip jq python \
-        wget curl openssh git-core unzip make
+    google-cloud-sdk \
+    libicu openssl unzip jq python \
+    wget curl openssh git-core unzip make

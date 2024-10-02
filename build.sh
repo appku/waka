@@ -9,6 +9,11 @@ if [[ -z "$TAG" || "$TAG" == "waka" || "$TAG" == "latest" ]]; then
     docker build --build-arg APPKU_WAKA_VERSION=$APPKU_WAKA_VERSION . -t appku/waka:latest -t appku/waka:$APPKU_WAKA_VERSION
     popd
 fi
+if [[ -z "$TAG" || "$TAG" == "cloud-az" ]]; then
+    pushd cloud-az
+    docker build --build-arg APPKU_WAKA_VERSION=$APPKU_WAKA_VERSION . -t appku/waka:cloud-az -t appku/waka:cloud-az-$APPKU_WAKA_VERSION
+    popd
+fi
 if [[ -z "$TAG" || "$TAG" == "cloud-gcp" ]]; then
     pushd cloud-gcp
     docker build --build-arg APPKU_WAKA_VERSION=$APPKU_WAKA_VERSION . -t appku/waka:cloud-gcp -t appku/waka:cloud-gcp-$APPKU_WAKA_VERSION
