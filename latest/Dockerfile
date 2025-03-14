@@ -28,10 +28,6 @@ RUN microdnf update -y \
     && curl https://github.com/mikefarah/yq/releases/download/v4.27.5/yq_linux_amd64.tar.gz -L -o /tmp/yq.tar.gz \
     && tar xzf /tmp/yq.tar.gz -C /tmp/ \
     && cp -R /tmp/yq_linux_amd64 /usr/bin/yq \
-    #install hugo
-    && curl https://github.com/gohugoio/hugo/releases/download/v0.119.0/hugo_extended_0.119.0_linux-amd64.tar.gz -L -o /tmp/hugo.tar.gz \
-    && tar xzf /tmp/hugo.tar.gz -C /tmp/ \
-    && cp /tmp/hugo /usr/bin/hugo \
     #cleanup
     && rm -fr /tmp/*
 

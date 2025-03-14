@@ -39,3 +39,8 @@ if [[ -z "$TAG" || "$TAG" == "node" ]]; then
     docker build --build-arg APPKU_WAKA_VERSION=$APPKU_WAKA_VERSION . -t appku/waka:node -t appku/waka:node-$APPKU_WAKA_VERSION
     popd
 fi
+if [[ -z "$TAG" || "$TAG" == "node-puppeteer" ]]; then
+    pushd node-puppeteer
+    docker build --build-arg APPKU_WAKA_VERSION=$APPKU_WAKA_VERSION . -t appku/waka:node-puppeteer -t appku/waka:node-puppeteer-$APPKU_WAKA_VERSION
+    popd
+fi

@@ -39,3 +39,8 @@ if [[ -z "$TAG" || "$TAG" == "node" ]]; then
     docker push appku/waka:node 
     docker push appku/waka:node-$APPKU_WAKA_VERSION
 fi
+if [[ -z "$TAG" || "$TAG" == "node-puppeteer" ]]; then
+    echo "Pushing AppKu™ Waka :node-puppeteer v$APPKU_WAKA_VERSION..."
+    docker push appku/waka:node-puppeteer 
+    docker push appku/waka:node-puppeteer-$APPKU_WAKA_VERSION
+fi
