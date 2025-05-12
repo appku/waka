@@ -1,0 +1,23 @@
+#!/bin/bash 
+
+# Copyright AppKu
+# https://github.com/appku/waka
+
+set -eu -o pipefail
+
+if [[ -f ./package.json ]]; then
+    # check puppeteer version
+    PACKAGE_PUPPETEER_VERSION=$(jq '.dependencies.puppeteer' ./package.json)
+    if [[ "$PACKAGE_PUPPETEER_VERSION" == "$PUPPETEER_VERSION" ]]; then
+        echo "Your 'puppeteer' package version is not fixed to \"$PUPPETEER_VERSION\". Found \"$PACKAGE_PUPPETEER_VERSION\" in 'package.json'."
+        echo "Please correct it to the static version \"$PUPPETEER_VERSION\" expected by this docker image and then run 'npm install' if you were using a different version."
+        echo "Expected: \"puppeteer\": \"$PUPPETEER_VERSION\""
+        exit 1
+    fi
+fi
+if [[ -d ./node_modules/puppeteer ]]; then
+    echo "Module for puppeteer found in node_modules. Removing it to instead use docker image global: puppeteer@$PUPPETEER_VERSION"
+    rm -rf ./node_modules/puppeteer
+    rm -rf ./node_modules/puppeteer-core
+fi
+./node-ops
