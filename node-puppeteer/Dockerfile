@@ -15,5 +15,5 @@ module.exports = {
 };
 EOF
 RUN cd /app && node "$(npm get prefix)/lib/node_modules/puppeteer/install.mjs"
-
+COPY node-puppeteer-ops /waka/
 CMD ["node-puppeteer-ops"]

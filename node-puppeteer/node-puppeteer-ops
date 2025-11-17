@@ -7,8 +7,8 @@ set -eu -o pipefail
 
 if [[ -f ./package.json ]]; then
     # check puppeteer version
-    PACKAGE_PUPPETEER_VERSION=$(jq '.dependencies.puppeteer' ./package.json)
-    if [[ "$PACKAGE_PUPPETEER_VERSION" == "$PUPPETEER_VERSION" ]]; then
+    PACKAGE_PUPPETEER_VERSION=$(jq -r '.dependencies.puppeteer' ./package.json)
+    if [[ "$PACKAGE_PUPPETEER_VERSION" != "$PUPPETEER_VERSION" ]]; then
         echo "Your 'puppeteer' package version is not fixed to \"$PUPPETEER_VERSION\". Found \"$PACKAGE_PUPPETEER_VERSION\" in 'package.json'."
         echo "Please correct it to the static version \"$PUPPETEER_VERSION\" expected by this docker image and then run 'npm install' if you were using a different version."
         echo "Expected: \"puppeteer\": \"$PUPPETEER_VERSION\""
@@ -20,4 +20,4 @@ if [[ -d ./node_modules/puppeteer ]]; then
     rm -rf ./node_modules/puppeteer
     rm -rf ./node_modules/puppeteer-core
 fi
-./node-ops
+/waka/node-ops
